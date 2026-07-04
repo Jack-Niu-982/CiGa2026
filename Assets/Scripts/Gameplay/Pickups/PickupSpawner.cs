@@ -18,13 +18,17 @@ public class PickupSpawner : MonoBehaviour
     private CarryableItem2D trashPickupPrefab;
 
     [Header("生成区域")]
-    [Tooltip("船体内部的 SubmarineInteriorFollower2D，作为生成物品的父级。")]
+    [Tooltip("生成物品的父级 Transform（可选，留空则生成在根级）。")]
     [SerializeField]
-    private SubmarineInteriorFollower2D submarineInterior;
+    private Transform spawnParent;
 
-    [Tooltip("生成区域的边界（相对于 submarineInterior 的本地坐标）。")]
+    [Tooltip("生成区域的世界坐标中心。")]
     [SerializeField]
-    private Bounds spawnBounds = new Bounds(Vector3.zero, new Vector3(8f, 3f, 0f));
+    private Vector3 spawnCenter = Vector3.zero;
+
+    [Tooltip("生成区域的大小。")]
+    [SerializeField]
+    private Vector3 spawnSize = new Vector3(8f, 3f, 0f);
 
     [Header("生成设置")]
     [Tooltip("生成位置的最小高度（避免生成在地板上）。")]
@@ -79,22 +83,13 @@ public class PickupSpawner : MonoBehaviour
             return;
         }
 
-        if (submarineInterior == null)
-        {
-            Debug.LogError(
-                "[PickupSpawner] 缺少 SubmarineInteriorFollower2D 引用。"
-            );
-            return;
-        }
-
-        Vector3 localPosition = GetRandomSpawnPosition();
-        Vector3 worldPosition = submarineInterior.transform.TransformPoint(localPosition);
+        Vector3 worldPosition = GetRandomSpawnPosition();
 
         CarryableItem2D pickup = Instantiate(
             prefab,
             worldPosition,
             Quaternion.identity,
-            submarineInterior.transform
+            spawnParent
         );
 
         pickup.name = $"{itemType}Pickup_Spawned";
