@@ -248,9 +248,9 @@ public static class FloatingItemPrefabBuilder
         FloatingItem2D floatingItem =
             root.AddComponent<FloatingItem2D>();
 
+        // 不再需要传递 pickupPrefab，FloatingItem 会从 SettingManager 获取
         floatingItem.Configure(
             floatingType,
-            pickupPrefab,
             new Vector2(-0.35f, 0f)
         );
 
