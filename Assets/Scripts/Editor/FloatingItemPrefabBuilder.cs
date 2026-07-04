@@ -183,7 +183,7 @@ public static class FloatingItemPrefabBuilder
         GameObject root =
             new GameObject(prefabName);
 
-        float itemScale = GetItemScaleMultiplier(itemType);
+        float itemScale = GetItemScaleMultiplier(pickupPrefab.ItemType);
         root.transform.localScale =
             new Vector3(itemScale, itemScale, 1f);
 
