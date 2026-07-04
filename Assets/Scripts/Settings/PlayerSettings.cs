@@ -34,6 +34,14 @@ public class PlayerSettings : ScriptableObject
     [Min(0f)]
     public float ladderSnapSpeed = 8f;
 
+    [Tooltip("开始吸附的最小距离（小于此距离不会吸附，避免抖动）。")]
+    [Min(0f)]
+    public float ladderSnapMinDistance = 0.05f;
+
+    [Tooltip("吸附平滑系数（0-1，越小越平滑）。")]
+    [Range(0f, 1f)]
+    public float ladderSnapSmoothing = 0.3f;
+
     [Tooltip("梯子检测区域大小。")]
     public Vector2 ladderCheckSize = new Vector2(0.8f, 1.4f);
 

@@ -41,6 +41,7 @@ public class FloatingItem2D : MonoBehaviour
     private Collider2D[] colliders;
     private SpriteRenderer[] spriteRenderers;
     private AnchorItemDropPoint2D activeDropPoint;
+    private Transform anchorTransform;
     private float lifeTimer;
     private float lifetime;
     private bool isBeingPulled;
@@ -227,7 +228,8 @@ public class FloatingItem2D : MonoBehaviour
     }
 
     public bool TryStartAnchorPull(
-        AnchorItemDropPoint2D dropPoint)
+        AnchorItemDropPoint2D dropPoint,
+        Transform anchor)
     {
         if (!CanBeCaughtByAnchor ||
             dropPoint == null)
@@ -236,6 +238,7 @@ public class FloatingItem2D : MonoBehaviour
         }
 
         activeDropPoint = dropPoint;
+        anchorTransform = anchor;
         isBeingPulled = true;
 
         SetColliderEnabled(false);
@@ -274,8 +277,16 @@ public class FloatingItem2D : MonoBehaviour
             return;
         }
 
-        Vector2 targetPosition =
-            activeDropPoint.DropWorldPosition;
+        Vector2 targetPosition;
+
+        if (anchorTransform != null)
+        {
+            targetPosition = anchorTransform.position;
+        }
+        else
+        {
+            targetPosition = activeDropPoint.DropWorldPosition;
+        }
 
         Vector2 nextPosition =
             Vector2.MoveTowards(
@@ -286,15 +297,40 @@ public class FloatingItem2D : MonoBehaviour
 
         itemRigidbody.MovePosition(nextPosition);
 
-        float remainingDistance =
-            Vector2.Distance(
-                nextPosition,
-                targetPosition
-            );
-
-        if (remainingDistance <= arrivalDistance)
+        if (anchorTransform == null)
         {
-            SpawnPickupAndDestroy(targetPosition);
+            float remainingDistance =
+                Vector2.Distance(
+                    nextPosition,
+                    targetPosition
+                );
+
+            if (remainingDistance <= arrivalDistance)
+            {
+                SpawnPickupAndDestroy(targetPosition);
+            }
+        }
+        else
+        {
+            float distanceToAnchor =
+                Vector2.Distance(
+                    nextPosition,
+                    (Vector2)anchorTransform.position
+                );
+
+            if (distanceToAnchor <= arrivalDistance * 2f)
+            {
+                float distanceToDropPoint =
+                    Vector2.Distance(
+                        (Vector2)anchorTransform.position,
+                        activeDropPoint.DropWorldPosition
+                    );
+
+                if (distanceToDropPoint <= arrivalDistance * 3f)
+                {
+                    SpawnPickupAndDestroy(activeDropPoint.DropWorldPosition);
+                }
+            }
         }
     }
 
@@ -330,9 +366,31 @@ public class FloatingItem2D : MonoBehaviour
 
             pickup.name =
                 $"{pickupPrefab.name}_{itemType}_Drop";
+
+            EnablePickupPhysics(pickup);
         }
 
         Destroy(gameObject);
+    }
+
+    private void EnablePickupPhysics(CarryableItem2D pickup)
+    {
+        if (pickup == null)
+        {
+            return;
+        }
+
+        Rigidbody2D pickupRigidbody =
+            pickup.GetComponent<Rigidbody2D>();
+
+        if (pickupRigidbody != null)
+        {
+            pickupRigidbody.bodyType = RigidbodyType2D.Dynamic;
+            pickupRigidbody.simulated = true;
+            pickupRigidbody.gravityScale = 1f;
+            pickupRigidbody.velocity = Vector2.zero;
+            pickupRigidbody.angularVelocity = 0f;
+        }
     }
 
     private Transform FindPickupParent()

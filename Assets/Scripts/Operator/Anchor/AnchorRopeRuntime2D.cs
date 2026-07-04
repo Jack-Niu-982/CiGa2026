@@ -789,7 +789,7 @@ public class AnchorRopeRuntime2D : MonoBehaviour
         }
 
         bool caught =
-            floatingTarget.TryCatch(dropPoint);
+            floatingTarget.TryCatch(dropPoint, anchorTransform);
 
         if (caught &&
             settings != null &&

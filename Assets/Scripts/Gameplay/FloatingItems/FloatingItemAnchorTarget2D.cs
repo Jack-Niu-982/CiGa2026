@@ -29,7 +29,8 @@ public class FloatingItemAnchorTarget2D : MonoBehaviour
     }
 
     public bool TryCatch(
-        AnchorItemDropPoint2D dropPoint)
+        AnchorItemDropPoint2D dropPoint,
+        Transform anchorTransform)
     {
         if (floatingItem == null)
         {
@@ -37,7 +38,8 @@ public class FloatingItemAnchorTarget2D : MonoBehaviour
         }
 
         return floatingItem.TryStartAnchorPull(
-            dropPoint
+            dropPoint,
+            anchorTransform
         );
     }
 }

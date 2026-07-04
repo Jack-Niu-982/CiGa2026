@@ -168,20 +168,34 @@ public partial class PlayerController
 
         if (settings.snapToLadderCenter)
         {
-            float nextHorizontalDistance =
-                Mathf.MoveTowards(
-                    currentHorizontalDistance,
-                    0f,
-                    settings.ladderSnapSpeed *
-                    Time.fixedDeltaTime
-                );
+            float absHorizontalDistance =
+                Mathf.Abs(currentHorizontalDistance);
 
-            horizontalCorrectionSpeed =
-                (
-                    nextHorizontalDistance -
-                    currentHorizontalDistance
-                ) /
-                Time.fixedDeltaTime;
+            if (absHorizontalDistance > settings.ladderSnapMinDistance)
+            {
+                float snapSpeed =
+                    settings.ladderSnapSpeed *
+                    Mathf.Lerp(
+                        settings.ladderSnapSmoothing,
+                        1f,
+                        absHorizontalDistance / 0.5f
+                    );
+
+                float nextHorizontalDistance =
+                    Mathf.MoveTowards(
+                        currentHorizontalDistance,
+                        0f,
+                        snapSpeed *
+                        Time.fixedDeltaTime
+                    );
+
+                horizontalCorrectionSpeed =
+                    (
+                        nextHorizontalDistance -
+                        currentHorizontalDistance
+                    ) /
+                    Time.fixedDeltaTime;
+            }
         }
 
         Vector2 relativeClimbVelocity =
