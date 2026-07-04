@@ -252,7 +252,7 @@ public class FloatingItem2D : MonoBehaviour
         }
 
         // 重置透明度
-        SetVisualsAlpha(1f);
+        SetAlpha(1f);
 
         SetColliderEnabled(false);
 
