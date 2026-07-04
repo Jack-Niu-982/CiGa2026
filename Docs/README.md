@@ -11,6 +11,8 @@
 
 - [Technical/UIFlow.md](Technical/UIFlow.md)：MainMenu、房间界面、Gameplay、PausePanel 的界面循环方案
 - [Technical/GameplayPlayerSpawning.md](Technical/GameplayPlayerSpawning.md)：房间玩家到 Gameplay 玩家 Prefab 动态生成方案
+- [Technical/PickupAndFloatingItems.md](Technical/PickupAndFloatingItems.md)：拾取物与漂浮物 Prefab 生成方案
+- [Technical/ParallelAgentWorkflow.md](Technical/ParallelAgentWorkflow.md)：多 Agent 并行开发流程和验收规范
 - [Technical/PluginAndPackageBaseline.md](Technical/PluginAndPackageBaseline.md)：Unity 插件、包版本和关键前置条件记录
 
 ## 玩法设计

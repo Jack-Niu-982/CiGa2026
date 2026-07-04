@@ -20,6 +20,13 @@
 - 涉及 Input System、Cinemachine、URP、Unity-MCP、Hot Reload、UI 或相机问题时，先核对这份基线，再判断是否需要升级、回退或重新解析包。
 - `com.unity.inputsystem` 当前保持 `1.8.2`，不要随手回退到 `1.6.3`，否则可能重新触发 Cinemachine 3.1.7 的 `activeValueType` 编译错误。
 
+## 多 Agent 并行开发
+
+- 后续需要并行推进时，先参考 `Docs/Technical/ParallelAgentWorkflow.md`。
+- 主对话负责定接口、拆任务、划定允许修改范围和禁止修改范围。
+- 子 agent 只处理低重叠的局部任务，不直接抢改同一个 Scene、Prefab 或核心脚本。
+- 主对话最后统一验收、刷新 Unity、检查 Console、检查 Prefab 引用并提交。
+
 ## 回复与文档风格
 
 - 所有回复、方案和文档都使用自然流畅的中文。

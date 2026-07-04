@@ -450,6 +450,7 @@ public static class UIFlowDemoBuilder
         player.AddComponent<KeyboardPlayerInput>();
         player.AddComponent<GamepadPlayerInput>();
         player.AddComponent<PlayerOperateInteractor2D>();
+        player.AddComponent<PlayerCarryInteractor2D>();
         player.AddComponent<PlayerController>();
 
         return player;
@@ -471,6 +472,7 @@ public static class UIFlowDemoBuilder
         EnsureComponent<KeyboardPlayerInput>(prefabRoot);
         EnsureComponent<GamepadPlayerInput>(prefabRoot);
         EnsureComponent<PlayerOperateInteractor2D>(prefabRoot);
+        EnsureComponent<PlayerCarryInteractor2D>(prefabRoot);
         EnsureComponent<PlayerController>(prefabRoot);
 
         PrefabUtility.SaveAsPrefabAsset(prefabRoot, prefabPath);
