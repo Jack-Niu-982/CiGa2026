@@ -15,6 +15,7 @@
 - [Technical/FloatingItems.md](Technical/FloatingItems.md)：船外漂浮物生成、锚拉回和拾取物掉落闭环
 - [Technical/FloatingItemTypes.md](Technical/FloatingItemTypes.md)：5 种漂浮物类型和效果系统（炸弹、蛛网、资源）
 - [Technical/CarryableItemSystem.md](Technical/CarryableItemSystem.md)：船内可拾取物跟随、玩家携带和 PickupSprite 显示系统
+- [Technical/StationSystem.md](Technical/StationSystem.md)：工作站系统（燃料站、修复站、护盾站）
 - [Technical/MissionHealthAndSettlement.md](Technical/MissionHealthAndSettlement.md)：终点、血量与胜负结算系统方案
 - [Technical/PhysicsLayerAndCollisionRules.md](Technical/PhysicsLayerAndCollisionRules.md)：Gameplay 物理层、碰撞矩阵和船舱内部阻挡约定
 - [Technical/ParallelAgentWorkflow.md](Technical/ParallelAgentWorkflow.md)：多 Agent 并行开发流程和验收规范

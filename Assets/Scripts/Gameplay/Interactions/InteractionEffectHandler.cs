@@ -125,8 +125,8 @@ public class InteractionEffectHandler : MonoBehaviour
             repairParticles.Play();
         }
 
-        // TODO: 实现船体修理逻辑
-        // 例如：FindObjectOfType<ShipHealth>()?.Heal(repairAmount);
+        // 通过事件总线请求修理飞船
+        GameplayEventBus.RequestSubmarineRepair(repairAmount);
     }
 
     private void ExecuteStorageEffect(PlayerController player)
