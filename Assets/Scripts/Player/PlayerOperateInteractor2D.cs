@@ -8,22 +8,23 @@ using UnityEngine;
 /// 1. 读取该玩家自己的交互键；
 /// 2. 记录附近可操作设施；
 /// 3. 选择最近的设施开始交互；
-/// 4. 将交互开始和结束通知给PlayerController。
+/// 4. 将交互开始和结束通知给 PlayerController；
+/// 5. 向操作台提供该玩家自己的 PlayerInputBase。
 ///
-/// 进入交互后，再次按交互键不会退出。
-/// 退出操作由PlayerController检测“长按左或右”完成。
+/// 没有交互时按交互键进入操作；
+/// 正在交互时再次按交互键退出操作。
 /// </summary>
 [DisallowMultipleComponent]
 public class PlayerOperateInteractor2D : MonoBehaviour
 {
     [Header("玩家组件")]
-    [Tooltip("通常会自动获取当前物体上的PlayerController。")]
+    [Tooltip("通常会自动获取当前物体上的 PlayerController。")]
     [SerializeField]
     private PlayerController playerController;
 
     [Tooltip(
-        "留空时优先读取PlayerController中的CurrentInput，" +
-        "也可以手动拖入KeyboardPlayerInput或GamepadPlayerInput。"
+        "留空时优先读取 PlayerController 中的 CurrentInput，" +
+        "也可以手动拖入 KeyboardPlayerInput 或 GamepadPlayerInput。"
     )]
     [SerializeField]
     private PlayerInputBase playerInput;
@@ -40,6 +41,15 @@ public class PlayerOperateInteractor2D : MonoBehaviour
     /// </summary>
     public OperateController CurrentOperateController =>
         currentOperateController;
+
+    /// <summary>
+    /// 当前这个玩家实际使用的输入组件。
+    ///
+    /// 多人模式下，每个玩家交互器只返回自己的输入，
+    /// 锚发射器通过这个引用区分不同玩家。
+    /// </summary>
+    public PlayerInputBase CurrentPlayerInput =>
+        GetCurrentInput();
 
     /// <summary>
     /// 该交互器代表的玩家物体。
@@ -94,7 +104,7 @@ public class PlayerOperateInteractor2D : MonoBehaviour
 
         /*
          * 已经处于交互状态：
-         * 再按一次交互键，退出当前操作。
+         * 再按一次交互键退出当前操作。
          */
         if (currentOperateController != null)
         {
@@ -109,8 +119,17 @@ public class PlayerOperateInteractor2D : MonoBehaviour
         HandleInteractPressed();
     }
 
+    /// <summary>
+    /// 获取这个玩家自己的输入组件。
+    /// </summary>
     private PlayerInputBase GetCurrentInput()
     {
+        /*
+         * 优先读取 PlayerController 当前选择的输入。
+         *
+         * 例如玩家一的 CurrentInput 是 Gamepad 1，
+         * 玩家二的 CurrentInput 是 Gamepad 2。
+         */
         if (playerController != null &&
             playerController.CurrentInput != null)
         {
@@ -178,7 +197,7 @@ public class PlayerOperateInteractor2D : MonoBehaviour
     }
 
     /// <summary>
-    /// 由OperateController在玩家进入范围时调用。
+    /// 由 OperateController 在玩家进入范围时调用。
     /// </summary>
     public void RegisterOperateController(
         OperateController controller)
@@ -194,7 +213,7 @@ public class PlayerOperateInteractor2D : MonoBehaviour
     }
 
     /// <summary>
-    /// 由OperateController在玩家离开范围时调用。
+    /// 由 OperateController 在玩家离开范围时调用。
     /// </summary>
     public void UnregisterOperateController(
         OperateController controller)
@@ -210,7 +229,7 @@ public class PlayerOperateInteractor2D : MonoBehaviour
     }
 
     /// <summary>
-    /// 由OperateController在操作开始时调用。
+    /// 由 OperateController 在操作开始时调用。
     /// </summary>
     public void NotifyOperateStarted(
         OperateController controller)
@@ -226,7 +245,7 @@ public class PlayerOperateInteractor2D : MonoBehaviour
     }
 
     /// <summary>
-    /// 由OperateController在操作结束时调用。
+    /// 由 OperateController 在操作结束时调用。
     /// </summary>
     public void NotifyOperateStopped(
         OperateController controller)
@@ -248,7 +267,7 @@ public class PlayerOperateInteractor2D : MonoBehaviour
     }
 
     /// <summary>
-    /// 由PlayerController在长按左或右达到时间后调用。
+    /// 尝试退出当前正在操作的设施。
     /// </summary>
     public bool TryStopCurrentOperate()
     {
@@ -261,6 +280,9 @@ public class PlayerOperateInteractor2D : MonoBehaviour
             .TryStopOperate(this);
     }
 
+    /// <summary>
+    /// 手动指定该玩家使用的输入组件。
+    /// </summary>
     public void SetPlayerInput(
         PlayerInputBase newInput)
     {
@@ -286,6 +308,7 @@ public class PlayerOperateInteractor2D : MonoBehaviour
         }
 
         currentOperateController = null;
+
         nearbyOperateControllers.Clear();
     }
 }

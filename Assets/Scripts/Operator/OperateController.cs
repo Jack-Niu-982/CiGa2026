@@ -6,9 +6,10 @@ using UnityEngine;
 ///
 /// 负责：
 /// 1. 检测进入交互范围的玩家；
-/// 2. 管理IfInUse和当前操作者；
+/// 2. 管理 IfInUse 和当前操作者；
 /// 3. 将玩家同步到指定操作位置；
-/// 4. 将操作状态变化通知给子类。
+/// 4. 将操作状态变化通知给子类；
+/// 5. 保存当前操作者自己的输入组件。
 /// </summary>
 public class OperateController : MonoBehaviour
 {
@@ -17,7 +18,7 @@ public class OperateController : MonoBehaviour
     public bool IfInUse = false;
 
     [Header("玩家检测")]
-    [Tooltip("能够触发交互的玩家标签。留空则不检查Tag。")]
+    [Tooltip("能够触发交互的玩家标签。留空则不检查 Tag。")]
     [SerializeField]
     private string playerTag = "Player";
 
@@ -35,7 +36,7 @@ public class OperateController : MonoBehaviour
 
     [Tooltip(
         "玩家位置同步的参考点。\n" +
-        "留空时使用当前OperateController物体的位置。"
+        "留空时使用当前 OperateController 物体的位置。"
     )]
     [SerializeField]
     private Transform operatorSyncPoint;
@@ -45,8 +46,8 @@ public class OperateController : MonoBehaviour
     private Vector2 operatorPositionOffset;
 
     [Tooltip(
-        "开启后，Offset会跟随同步点旋转。\n" +
-        "关闭后，Offset始终按照世界坐标计算。"
+        "开启后，Offset 会跟随同步点旋转。\n" +
+        "关闭后，Offset 始终按照世界坐标计算。"
     )]
     [SerializeField]
     private bool offsetUsesLocalDirection = true;
@@ -88,13 +89,32 @@ public class OperateController : MonoBehaviour
     }
 
     /// <summary>
+    /// 当前操作者实际使用的输入组件。
+    ///
+    /// 每个玩家的 PlayerOperateInteractor2D
+    /// 只会返回该玩家自己的输入。
+    /// </summary>
+    public PlayerInputBase CurrentOperatorInput
+    {
+        get
+        {
+            if (CurrentOperatorInteractor == null)
+            {
+                return null;
+            }
+
+            return CurrentOperatorInteractor.CurrentPlayerInput;
+        }
+    }
+
+    /// <summary>
     /// 当前是否至少有一名玩家位于交互范围内。
     /// </summary>
     public bool HasPlayerInRange =>
         playerColliderCounts.Count > 0;
 
     /*
-     * 玩家可能拥有多个Collider2D。
+     * 玩家可能拥有多个 Collider2D。
      * 记录每个玩家当前有多少个碰撞体位于范围内，
      * 防止单个碰撞体离开时误判为整个玩家离开。
      */
@@ -116,7 +136,7 @@ public class OperateController : MonoBehaviour
         RemoveDestroyedPlayers();
 
         /*
-         * 允许其他脚本直接修改公开的IfInUse。
+         * 允许其他脚本直接修改公开的 IfInUse。
          */
         if (lastAppliedUseState != IfInUse)
         {
@@ -176,6 +196,12 @@ public class OperateController : MonoBehaviour
             return false;
         }
 
+        /*
+         * 必须先记录当前玩家。
+         *
+         * 之后 SetInUse(true) 调用子类时，
+         * 子类才能取得正确的 CurrentOperatorInput。
+         */
         CurrentOperatorInteractor = player;
 
         player.NotifyOperateStarted(this);
@@ -243,7 +269,7 @@ public class OperateController : MonoBehaviour
     }
 
     /// <summary>
-    /// 每次IfInUse改变时调用。
+    /// 每次 IfInUse 改变时调用。
     /// 子类可以重写这个方法来启用或禁用自己的组件。
     /// </summary>
     protected virtual void OnOperateStateChanged(
@@ -280,7 +306,7 @@ public class OperateController : MonoBehaviour
         if (offsetUsesLocalDirection)
         {
             /*
-             * Offset跟随同步点旋转，
+             * Offset 跟随同步点旋转，
              * 但不会受到同步点缩放影响。
              */
             offset = syncPoint.TransformDirection(
@@ -294,7 +320,7 @@ public class OperateController : MonoBehaviour
         else
         {
             /*
-             * 使用世界坐标Offset。
+             * 使用世界坐标 Offset。
              */
             offset = new Vector3(
                 operatorPositionOffset.x,
@@ -354,14 +380,14 @@ public class OperateController : MonoBehaviour
             }
 
             /*
-             * 用Rigidbody2D设置物理位置。
+             * 用 Rigidbody2D 设置物理位置。
              */
             playerRigidbody.position =
                 targetPosition;
 
             /*
              * 开始操作的这一帧立刻更新视觉位置，
-             * 不用等待下一个FixedUpdate。
+             * 不用等待下一个 FixedUpdate。
              */
             if (immediate)
             {
@@ -395,14 +421,23 @@ public class OperateController : MonoBehaviour
         lastAppliedUseState =
             IfInUse;
 
-        if (!IfInUse)
+        /*
+         * 进入使用状态时，当前操作者仍然存在，
+         * 子类可以读取 CurrentOperatorInput。
+         */
+        if (IfInUse)
         {
-            ReleaseCurrentOperator();
+            OnOperateStateChanged(true);
+            return;
         }
 
-        OnOperateStateChanged(
-            IfInUse
-        );
+        /*
+         * 退出时先让子类停止使用设施、清除输入绑定，
+         * 再释放当前操作者。
+         */
+        OnOperateStateChanged(false);
+
+        ReleaseCurrentOperator();
     }
 
     private void ReleaseCurrentOperator()
@@ -469,7 +504,7 @@ public class OperateController : MonoBehaviour
         colliderCount--;
 
         /*
-         * 玩家还有其他Collider处于范围内。
+         * 玩家还有其他 Collider 处于范围内。
          */
         if (colliderCount > 0)
         {
@@ -593,11 +628,15 @@ public class OperateController : MonoBehaviour
 
         IfInUse = false;
 
+        /*
+         * 禁用时同样先通知子类关闭，
+         * 再释放玩家。
+         */
+        OnOperateStateChanged(false);
+
         ReleaseCurrentOperator();
 
         lastAppliedUseState = false;
-
-        OnOperateStateChanged(false);
     }
 
 #if UNITY_EDITOR

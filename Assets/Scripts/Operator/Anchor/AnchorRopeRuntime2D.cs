@@ -9,7 +9,7 @@ using UnityEngine.Rendering;
 /// 1. 船锚飞行；
 /// 2. 船锚自动收回；
 /// 3. 绳子始终连接发射器和船锚；
-/// 4. 船锚固定后的永久自然拉力；
+/// 4. 船锚发射后的实时自然拉力；
 /// 5. 玩家操作时的额外主动拉力。
 ///
 /// OperateController 不要禁用这个组件。
@@ -66,8 +66,17 @@ public class AnchorRopeRuntime2D : MonoBehaviour
     public bool IsAnchorRetracting =>
         currentState == AnchorState.Retracting;
 
+    /// <summary>
+    /// 船锚当前的实时世界坐标。
+    ///
+    /// 船锚发射后直接读取船锚 Transform，
+    /// 不再只返回命中时保存的位置。
+    /// </summary>
     public Vector2 AnchorPoint =>
-        anchorPoint;
+        anchorTransform != null &&
+        currentState != AnchorState.Idle
+            ? (Vector2)anchorTransform.position
+            : anchorPoint;
 
     private void Awake()
     {
@@ -102,6 +111,31 @@ public class AnchorRopeRuntime2D : MonoBehaviour
         }
     }
 
+    private void FixedUpdate()
+    {
+        if (
+            !initialized ||
+            currentState == AnchorState.Idle
+        )
+        {
+            return;
+        }
+
+        /*
+         * 船锚一旦发射，
+         * 每个物理帧都重新读取：
+         *
+         * 1. 发射器中心位置；
+         * 2. 船锚中心位置；
+         * 3. 两点之间的实时方向；
+         * 4. 两点之间的实时距离。
+         *
+         * 因此潜艇移动或旋转后，
+         * 拉力方向会立即跟着改变。
+         */
+        ApplyRealtimeRopePull();
+    }
+
     private void LateUpdate()
     {
         if (!initialized)
@@ -110,37 +144,10 @@ public class AnchorRopeRuntime2D : MonoBehaviour
         }
 
         /*
-         * 使用 LateUpdate 更新绳子。
-         *
-         * 这样即使潜艇和发射器在本帧发生了移动，
-         * 绳子也会在所有普通 Update 完成后，
-         * 再次严格连接发射器和船锚。
+         * 在所有普通 Update 完成后刷新绳子，
+         * 保证绳子始终严格连接发射器中心和船锚中心。
          */
         UpdateRopeVisual();
-    }
-
-    private void FixedUpdate()
-    {
-        if (
-            !initialized ||
-            currentState != AnchorState.Attached
-        )
-        {
-            return;
-        }
-
-        /*
-         * 永久自然拉力。
-         *
-         * 这一部分位于常驻脚本中，
-         * 所以 AnchorLauncher2D 被禁用后依然会运行。
-         */
-        ApplyPassiveAnchorPull();
-
-        if (reelKeyHeld)
-        {
-            ApplyActiveReelPull();
-        }
     }
 
     private void OnDestroy()
@@ -244,7 +251,8 @@ public class AnchorRopeRuntime2D : MonoBehaviour
                 requestedDirection
             );
 
-        detector = settings.LaunchDetector;
+        detector =
+            settings.LaunchDetector;
 
         if (detector == null)
         {
@@ -291,19 +299,27 @@ public class AnchorRopeRuntime2D : MonoBehaviour
             result.FlightTargetPoint;
 
         /*
-         * 发射时把船锚解除父子关系。
+         * 发射时解除船锚与发射器的父子关系。
          *
-         * 这样潜艇移动时，船锚不会跟着潜艇移动，
-         * 绳子会连接移动中的发射器和世界中的船锚。
+         * 这样潜艇移动后，
+         * 世界空间中的船锚不会跟着潜艇移动。
          */
-        anchorTransform.SetParent(null, true);
+        anchorTransform.SetParent(
+            null,
+            true
+        );
 
         SetAnchorWorldPosition(
             currentAnchorPosition
         );
 
+        anchorPoint =
+            currentAnchorPosition;
+
         lineRenderer.enabled = true;
-        currentState = AnchorState.Flying;
+
+        currentState =
+            AnchorState.Flying;
 
         if (settings.ShowDebugLog)
         {
@@ -315,7 +331,8 @@ public class AnchorRopeRuntime2D : MonoBehaviour
         }
 
         /*
-         * 速度设置为 0 时，直接瞬间检测整条路径。
+         * 发射速度为 0 时，
+         * 直接瞬间检测整条发射路径。
          */
         if (settings.AnchorShootSpeed <= 0f)
         {
@@ -329,12 +346,18 @@ public class AnchorRopeRuntime2D : MonoBehaviour
                 )
             )
             {
-                HandleFlightHit(instantHit);
+                HandleFlightHit(
+                    instantHit
+                );
+
                 return true;
             }
 
             currentAnchorPosition =
                 flightTargetPoint;
+
+            anchorPoint =
+                currentAnchorPosition;
 
             SetAnchorWorldPosition(
                 currentAnchorPosition
@@ -372,9 +395,11 @@ public class AnchorRopeRuntime2D : MonoBehaviour
     }
 
     /// <summary>
-    /// 设置玩家是否正在按住主动拉回键。
+    /// 设置玩家是否正在主动收绳。
     /// </summary>
-    public void SetReelHeld(bool held)
+    public void SetReelHeld(
+        bool held
+    )
     {
         reelKeyHeld =
             held &&
@@ -411,6 +436,9 @@ public class AnchorRopeRuntime2D : MonoBehaviour
             return false;
         }
 
+        /*
+         * 默认发射器的直接父物体就是潜艇主体。
+         */
         bodyTransform =
             transform.parent;
 
@@ -681,12 +709,18 @@ public class AnchorRopeRuntime2D : MonoBehaviour
             )
         )
         {
-            HandleFlightHit(hit);
+            HandleFlightHit(
+                hit
+            );
+
             return;
         }
 
         currentAnchorPosition =
             nextPosition;
+
+        anchorPoint =
+            currentAnchorPosition;
 
         SetAnchorWorldPosition(
             currentAnchorPosition
@@ -702,6 +736,9 @@ public class AnchorRopeRuntime2D : MonoBehaviour
         {
             currentAnchorPosition =
                 flightTargetPoint;
+
+            anchorPoint =
+                currentAnchorPosition;
 
             SetAnchorWorldPosition(
                 currentAnchorPosition
@@ -790,6 +827,12 @@ public class AnchorRopeRuntime2D : MonoBehaviour
                 Time.deltaTime
             );
 
+        currentAnchorPosition =
+            newPosition;
+
+        anchorPoint =
+            newPosition;
+
         SetAnchorWorldPosition(
             newPosition
         );
@@ -837,105 +880,218 @@ public class AnchorRopeRuntime2D : MonoBehaviour
 
         PlaceAnchorAtRestPosition();
 
+        anchorPoint =
+            anchorTransform.position;
+
+        currentAnchorPosition =
+            anchorPoint;
+
         if (lineRenderer != null)
         {
             lineRenderer.enabled = false;
         }
     }
 
-    private void ApplyPassiveAnchorPull()
-    {
-        ApplyPull(
-            settings.PassivePullAcceleration,
-            settings.PassiveMaxPullSpeed
-        );
-    }
-
-    private void ApplyActiveReelPull()
-    {
-        ApplyPull(
-            settings.ReelPullAcceleration,
-            settings.MaxReelSpeed
-        );
-    }
-
     /// <summary>
-    /// 向锚点方向持续施加速度。
+    /// 根据船锚中心和发射器中心的实时位置施加拉力。
+    ///
+    /// 拉力作用在发射器所在的位置，
+    /// 因此发射器偏离潜艇重心时可以自然产生旋转。
     /// </summary>
-    private void ApplyPull(
-        float acceleration,
-        float maximumSpeed
-    )
+    /// <summary>
+    /// 根据船锚中心和发射器中心的实时位置施加拉力。
+    ///
+    /// 使用 AddForce 将力作用在潜艇质心，
+    /// 避免水平拉力因为发射器偏离质心而产生额外旋转，
+    /// 进而表现为向上或向下的加速度。
+    /// </summary>
+    /// <summary>
+    /// 根据潜艇 Rigidbody2D 的真实质心和船锚位置，
+    /// 持续向船锚方向施加拉力。
+    ///
+    /// 因为力通过 Rigidbody2D.AddForce 作用于质心，
+    /// 所以拉力方向也必须从质心指向船锚，
+    /// 不能从发射器位置指向船锚。
+    /// </summary>
+    private void ApplyRealtimeRopePull()
     {
         if (
-            acceleration <= 0f ||
-            maximumSpeed <= 0f
+            anchorTransform == null ||
+            bodyRigidbody == null
         )
         {
             return;
         }
 
         /*
-         * 这里使用发射器的位置作为绳子起点。
-         *
-         * 锚点减去发射器位置，
-         * 就是潜艇当前应该被拉动的方向。
+         * 船锚当前的世界坐标。
          */
-        Vector2 toAnchor =
-            anchorPoint -
-            (Vector2)transform.position;
+        Vector2 anchorCenter =
+            anchorTransform.position;
 
-        float distance =
-            toAnchor.magnitude;
+        anchorPoint =
+            anchorCenter;
+
+        /*
+         * Rigidbody2D 的真实世界质心。
+         *
+         * 不能使用发射器的 transform.position，
+         * 因为最终 AddForce 是作用在 Rigidbody2D 质心上的。
+         */
+        Vector2 bodyCenter =
+            bodyRigidbody.worldCenterOfMass;
+
+        /*
+         * 从潜艇质心指向船锚。
+         */
+        Vector2 bodyToAnchor =
+            anchorCenter -
+            bodyCenter;
+
+        /*
+         * 消除非常微小的浮点误差。
+         *
+         * 例如理论上完全水平时，
+         * Y 可能仍然会出现 0.00001 之类的数值。
+         */
+        const float axisSnapDistance = 0.02f;
 
         if (
-            distance <=
+            Mathf.Abs(bodyToAnchor.y) <=
+            axisSnapDistance
+        )
+        {
+            bodyToAnchor.y = 0f;
+        }
+
+        if (
+            Mathf.Abs(bodyToAnchor.x) <=
+            axisSnapDistance
+        )
+        {
+            bodyToAnchor.x = 0f;
+        }
+
+        float distanceToAnchor =
+            bodyToAnchor.magnitude;
+
+        if (
+            distanceToAnchor <=
             settings.StopPullDistance ||
-            distance <= 0.0001f
+            distanceToAnchor <= 0.0001f
         )
         {
             return;
         }
 
         Vector2 pullDirection =
-            toAnchor / distance;
+            bodyToAnchor /
+            distanceToAnchor;
 
+        /*
+         * 默认的持续自然拉力。
+         */
+        float pullAcceleration =
+            settings.PassivePullAcceleration;
+
+        float maximumPullSpeed =
+            settings.PassiveMaxPullSpeed;
+
+        /*
+         * 玩家主动收绳时，
+         * 在自然拉力基础上增加主动拉力。
+         */
+        if (
+            currentState == AnchorState.Attached &&
+            reelKeyHeld
+        )
+        {
+            pullAcceleration +=
+                settings.ReelPullAcceleration;
+
+            maximumPullSpeed =
+                Mathf.Max(
+                    maximumPullSpeed,
+                    settings.MaxReelSpeed
+                );
+        }
+
+        if (
+            pullAcceleration <= 0f ||
+            maximumPullSpeed <= 0f
+        )
+        {
+            return;
+        }
+
+        /*
+         * 获取潜艇整体速度。
+         */
         Vector2 currentVelocity =
             bodyRigidbody.velocity;
 
+        /*
+         * 计算潜艇目前朝船锚方向的速度。
+         */
         float speedTowardsAnchor =
             Vector2.Dot(
                 currentVelocity,
                 pullDirection
             );
 
+        /*
+         * 已经达到允许的最大拉动速度时，
+         * 不再继续沿该方向加速。
+         */
         if (
             speedTowardsAnchor >=
-            maximumSpeed
+            maximumPullSpeed
         )
         {
             return;
         }
 
-        float velocityIncrease =
-            acceleration *
-            Time.fixedDeltaTime;
+        float remainingSpeed =
+            maximumPullSpeed -
+            speedTowardsAnchor;
 
-        velocityIncrease =
-            Mathf.Min(
-                velocityIncrease,
-                maximumSpeed -
-                speedTowardsAnchor
+        float maximumAccelerationThisStep =
+            remainingSpeed /
+            Mathf.Max(
+                Time.fixedDeltaTime,
+                0.0001f
             );
 
-        bodyRigidbody.velocity =
-            currentVelocity +
+        float actualAcceleration =
+            Mathf.Min(
+                pullAcceleration,
+                maximumAccelerationThisStep
+            );
+
+        if (actualAcceleration <= 0f)
+        {
+            return;
+        }
+
+        /*
+         * F = m × a
+         */
+        Vector2 pullForce =
             pullDirection *
-            velocityIncrease;
+            actualAcceleration *
+            bodyRigidbody.mass;
+
+        /*
+         * AddForce 默认作用于 Rigidbody2D 的质心。
+         */
+        bodyRigidbody.AddForce(
+            pullForce,
+            ForceMode2D.Force
+        );
     }
 
     /// <summary>
-    /// 每帧严格刷新绳子的两个端点。
+    /// 每帧刷新绳子的两个端点。
     /// </summary>
     private void UpdateRopeVisual()
     {
@@ -957,15 +1113,21 @@ public class AnchorRopeRuntime2D : MonoBehaviour
 
         lineRenderer.enabled = true;
 
+        /*
+         * 绳子起点始终是发射器实时中心。
+         */
         Vector3 ropeStart =
             transform.position;
 
+        /*
+         * 绳子终点始终是船锚实时中心。
+         */
         Vector3 ropeEnd =
             anchorTransform.position;
 
         /*
-         * 防止两个物体的 Z 不一致，
-         * 导致绳子在透视或排序上看起来歪斜。
+         * 防止两个物体 Z 坐标不一致，
+         * 导致绳子视觉上倾斜或排序异常。
          */
         ropeEnd.z =
             ropeStart.z;
@@ -1003,9 +1165,7 @@ public class AnchorRopeRuntime2D : MonoBehaviour
         float targetWidth =
             settings.RopeWidthAtReferenceLength;
 
-        if (
-            settings.InverseWidthByLength
-        )
+        if (settings.InverseWidthByLength)
         {
             float safeLength =
                 Mathf.Max(
@@ -1052,11 +1212,20 @@ public class AnchorRopeRuntime2D : MonoBehaviour
             return;
         }
 
-        SetAnchorWorldPosition(
+        Vector2 restPosition =
             GetAnchorRestWorldPosition(
                 direction
-            )
+            );
+
+        SetAnchorWorldPosition(
+            restPosition
         );
+
+        anchorPoint =
+            restPosition;
+
+        currentAnchorPosition =
+            restPosition;
     }
 
     private Vector2 GetAnchorRestWorldPosition(

@@ -154,6 +154,7 @@ Transform:
   m_Children:
   - {fileID: 1492738945}
   - {fileID: 74167689}
+  - {fileID: 1276888233}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &74167688
@@ -387,6 +388,30 @@ MonoBehaviour:
   stickDeadZone: 0.2
   verticalInputThreshold: 0.6
   interactButton: 2
+  useRightShoulderToShoot: 1
+  useSouthToRetract: 1
+  reelRotationDirection: 0
+  reelStickMinimumMagnitude: 0.65
+  minimumReelAngularSpeed: 45
+  fullReelAngularSpeed: 360
+  minimumReelAmount: 0.25
+  reelInputGraceTime: 0.08
+  maximumAcceptedAngleDelta: 120
+  reelAmountRiseSpeed: 10
+  reelAmountFallSpeed: 14
+  enableAnchorRumble: 1
+  rumbleStepDegrees: 45
+  reelTickDuration: 0.045
+  reelTickLowFrequency: 0.42
+  reelTickHighFrequency: 0.22
+  continuousReelLowFrequency: 0.18
+  continuousReelHighFrequency: 0.07
+  shootRumbleDuration: 0.12
+  shootLowFrequency: 0.25
+  shootHighFrequency: 0.65
+  retractRumbleDuration: 0.16
+  retractLowFrequency: 0.55
+  retractHighFrequency: 0.18
   southButtonAlsoActsAsUp: 0
 --- !u!1 &91649960
 GameObject:
@@ -444,6 +469,7 @@ MonoBehaviour:
   continuouslySyncOperator: 1
   clearOperatorVelocity: 1
   anchorLauncherObject: {fileID: 1467191737}
+  showInputBindingLog: 1
 --- !u!212 &91649963
 SpriteRenderer:
   m_ObjectHideFlags: 0
@@ -712,7 +738,7 @@ GameObject:
   m_Component:
   - component: {fileID: 298030144}
   - component: {fileID: 298030145}
-  m_Layer: 0
+  m_Layer: 11
   m_Name: Anchor
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -967,7 +993,7 @@ GameObject:
   - component: {fileID: 376064751}
   - component: {fileID: 376064752}
   - component: {fileID: 376064753}
-  m_Layer: 0
+  m_Layer: 12
   m_Name: ShooterLeft
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1055,14 +1081,17 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   anchorDirection: 3
+  currentPlayerInput: {fileID: 0}
+  autoFindPlayerInput: 1
+  keepExplicitBindingMode: 1
   anchorReference: {fileID: 1121047371}
   launchDetector: {fileID: 376064752}
   maxRopeLength: 15
   anchorOffset: 0.5
   anchorShootSpeed: 25
   anchorRetractSpeed: 18
-  passivePullAcceleration: 1.2
-  passiveMaxPullSpeed: 2
+  passivePullAcceleration: 0.5
+  passiveMaxPullSpeed: 1
   reelPullAcceleration: 12
   maxReelSpeed: 8
   stopPullDistance: 0.15
@@ -1250,7 +1279,7 @@ GameObject:
   m_Component:
   - component: {fileID: 430217563}
   - component: {fileID: 430217564}
-  m_Layer: 0
+  m_Layer: 11
   m_Name: Anchor
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2388,6 +2417,7 @@ MonoBehaviour:
   continuouslySyncOperator: 1
   clearOperatorVelocity: 1
   anchorLauncherObject: {fileID: 810185780}
+  showInputBindingLog: 1
 --- !u!212 &710196758
 SpriteRenderer:
   m_ObjectHideFlags: 0
@@ -2588,7 +2618,7 @@ GameObject:
   - component: {fileID: 810185785}
   - component: {fileID: 810185786}
   - component: {fileID: 810185787}
-  m_Layer: 0
+  m_Layer: 12
   m_Name: ShooterDown
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2676,14 +2706,17 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   anchorDirection: 2
+  currentPlayerInput: {fileID: 0}
+  autoFindPlayerInput: 1
+  keepExplicitBindingMode: 1
   anchorReference: {fileID: 1958382377}
   launchDetector: {fileID: 810185786}
   maxRopeLength: 15
   anchorOffset: 0.5
   anchorShootSpeed: 25
   anchorRetractSpeed: 18
-  passivePullAcceleration: 1.2
-  passiveMaxPullSpeed: 2
+  passivePullAcceleration: 0.5
+  passiveMaxPullSpeed: 1
   reelPullAcceleration: 12
   maxReelSpeed: 8
   stopPullDistance: 0.15
@@ -3283,6 +3316,7 @@ MonoBehaviour:
   continuouslySyncOperator: 1
   clearOperatorVelocity: 1
   anchorLauncherObject: {fileID: 1580021265}
+  showInputBindingLog: 1
 --- !u!212 &1008911844
 SpriteRenderer:
   m_ObjectHideFlags: 0
@@ -3729,7 +3763,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1121047371}
   - component: {fileID: 1121047372}
-  m_Layer: 0
+  m_Layer: 11
   m_Name: Anchor
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -3803,6 +3837,262 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
+--- !u!1 &1276888232
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1276888233}
+  - component: {fileID: 1276888239}
+  - component: {fileID: 1276888238}
+  - component: {fileID: 1276888237}
+  - component: {fileID: 1276888236}
+  - component: {fileID: 1276888235}
+  - component: {fileID: 1276888234}
+  m_Layer: 3
+  m_Name: Player3
+  m_TagString: Player
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 0
+--- !u!4 &1276888233
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1276888232}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 0.075, y: 0.075, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 1457265403}
+  m_Father: {fileID: 1449846}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1276888234
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1276888232}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 07913c308c62bfd4fab83d96c058854c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  gamepadIndex: 1
+  stickDeadZone: 0.2
+  verticalInputThreshold: 0.6
+  interactButton: 2
+  useRightShoulderToShoot: 1
+  useSouthToRetract: 1
+  reelRotationDirection: 0
+  reelStickMinimumMagnitude: 0.65
+  minimumReelAngularSpeed: 45
+  fullReelAngularSpeed: 360
+  minimumReelAmount: 0.25
+  reelInputGraceTime: 0.08
+  maximumAcceptedAngleDelta: 120
+  reelAmountRiseSpeed: 10
+  reelAmountFallSpeed: 14
+  enableAnchorRumble: 1
+  rumbleStepDegrees: 45
+  reelTickDuration: 0.045
+  reelTickLowFrequency: 0.42
+  reelTickHighFrequency: 0.22
+  continuousReelLowFrequency: 0.18
+  continuousReelHighFrequency: 0.07
+  shootRumbleDuration: 0.12
+  shootLowFrequency: 0.25
+  shootHighFrequency: 0.65
+  retractRumbleDuration: 0.16
+  retractLowFrequency: 0.55
+  retractHighFrequency: 0.18
+  southButtonAlsoActsAsUp: 0
+--- !u!114 &1276888235
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1276888232}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8543f177568d4c847b32dc390a24a00f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  playerController: {fileID: 1276888236}
+  playerInput: {fileID: 1276888234}
+--- !u!114 &1276888236
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1276888232}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e8ba733a3fcf5a246bc80b2aaa5ba571, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  playerInput: {fileID: 1276888234}
+  rb: {fileID: 1276888238}
+  bodyCollider: {fileID: 0}
+  animator: {fileID: 0}
+  moveSpeed: 1.5
+  jumpForce: 3
+  groundCheck: {fileID: 1457265403}
+  groundCheckRadius: 0.15
+  groundLayer:
+    serializedVersion: 2
+    m_Bits: 128
+  ladderCheck: {fileID: 1457265403}
+  ladderCheckSize: {x: 0.8, y: 1.4}
+  ladderLayer:
+    serializedVersion: 2
+    m_Bits: 256
+  climbSpeed: 4
+  snapToLadderCenter: 1
+  ladderSnapSpeed: 8
+  ladderEndPadding: 0.02
+  ladderExitHoldTime: 0.2
+  ladderExitInputThreshold: 0.5
+  ladderLandingCheck: {fileID: 1457265403}
+  ladderLandingCheckSize: {x: 0.45, y: 0.12}
+  submarineInteriorLayer:
+    serializedVersion: 2
+    m_Bits: 1024
+  disableBodyColliderWhileClimbing: 1
+  operateInteractor: {fileID: 0}
+  freezeRotation: 1
+  moveXParameter: MoveX
+  moveSpeedParameter: MoveSpeed
+  verticalSpeedParameter: VerticalSpeed
+  groundedParameter: IsGrounded
+  climbingParameter: IsClimbing
+  operatingParameter: IsOperating
+  jumpTriggerParameter: Jump
+--- !u!70 &1276888237
+CapsuleCollider2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1276888232}
+  m_Enabled: 1
+  m_Density: 1
+  m_Material: {fileID: 6200000, guid: 34ca706b211b08f46ba4b4bddd6605b2, type: 2}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ForceSendLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ForceReceiveLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ContactCaptureLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_CallbackLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_IsTrigger: 0
+  m_UsedByEffector: 0
+  m_UsedByComposite: 0
+  m_Offset: {x: 0, y: 0}
+  m_Size: {x: 1, y: 2}
+  m_Direction: 0
+--- !u!50 &1276888238
+Rigidbody2D:
+  serializedVersion: 4
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1276888232}
+  m_BodyType: 0
+  m_Simulated: 1
+  m_UseFullKinematicContacts: 0
+  m_UseAutoMass: 0
+  m_Mass: 1
+  m_LinearDrag: 0
+  m_AngularDrag: 0.05
+  m_GravityScale: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_Interpolate: 0
+  m_SleepingMode: 1
+  m_CollisionDetection: 0
+  m_Constraints: 0
+--- !u!212 &1276888239
+SpriteRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1276888232}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 0
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 0
+  m_RayTraceProcedural: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: a97c105638bdf8b4a8650670310a4cd3, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 0
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 10
+  m_Sprite: {fileID: -9095717837082945937, guid: 207ee8102dd4143d288186ef0be518ee, type: 3}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_FlipX: 0
+  m_FlipY: 0
+  m_DrawMode: 0
+  m_Size: {x: 1, y: 2}
+  m_AdaptiveModeThreshold: 0.5
+  m_SpriteTileMode: 0
+  m_WasSpriteAssigned: 1
+  m_MaskInteraction: 0
+  m_SpriteSortPoint: 0
 --- !u!1 &1434719702
 GameObject:
   m_ObjectHideFlags: 0
@@ -3837,6 +4127,37 @@ Transform:
   - {fileID: 624305941}
   m_Father: {fileID: 980922846}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1457265402
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1457265403}
+  m_Layer: 0
+  m_Name: GroundCheck
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1457265403
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1457265402}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: -0.52, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1276888233}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1467191737
 GameObject:
   m_ObjectHideFlags: 0
@@ -3852,7 +4173,7 @@ GameObject:
   - component: {fileID: 1467191742}
   - component: {fileID: 1467191743}
   - component: {fileID: 1467191744}
-  m_Layer: 0
+  m_Layer: 12
   m_Name: ShooterRight
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -4053,14 +4374,17 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   anchorDirection: 1
+  currentPlayerInput: {fileID: 0}
+  autoFindPlayerInput: 1
+  keepExplicitBindingMode: 1
   anchorReference: {fileID: 298030144}
   launchDetector: {fileID: 1467191743}
   maxRopeLength: 15
   anchorOffset: 0.5
   anchorShootSpeed: 25
   anchorRetractSpeed: 18
-  passivePullAcceleration: 1.2
-  passiveMaxPullSpeed: 2
+  passivePullAcceleration: 0.5
+  passiveMaxPullSpeed: 1
   reelPullAcceleration: 12
   maxReelSpeed: 8
   stopPullDistance: 0.15
@@ -4232,6 +4556,9 @@ MonoBehaviour:
   upKey: 37
   downKey: 33
   interactKey: 20
+  anchorShootKey: 31
+  anchorRetractKey: 32
+  anchorReelKey: 19
   allowArrowKeys: 1
 --- !u!114 &1492738948
 MonoBehaviour:
@@ -4475,7 +4802,7 @@ GameObject:
   - component: {fileID: 1580021270}
   - component: {fileID: 1580021271}
   - component: {fileID: 1580021272}
-  m_Layer: 0
+  m_Layer: 12
   m_Name: ShooterUp
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -4563,14 +4890,17 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   anchorDirection: 0
+  currentPlayerInput: {fileID: 0}
+  autoFindPlayerInput: 1
+  keepExplicitBindingMode: 1
   anchorReference: {fileID: 430217563}
   launchDetector: {fileID: 1580021271}
   maxRopeLength: 15
   anchorOffset: 0.5
   anchorShootSpeed: 25
   anchorRetractSpeed: 18
-  passivePullAcceleration: 1.2
-  passiveMaxPullSpeed: 2
+  passivePullAcceleration: 0.5
+  passiveMaxPullSpeed: 1
   reelPullAcceleration: 12
   maxReelSpeed: 8
   stopPullDistance: 0.15
@@ -4934,6 +5264,7 @@ MonoBehaviour:
   continuouslySyncOperator: 1
   clearOperatorVelocity: 1
   anchorLauncherObject: {fileID: 376064746}
+  showInputBindingLog: 1
 --- !u!212 &1806212573
 SpriteRenderer:
   m_ObjectHideFlags: 0
@@ -5041,7 +5372,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1958382377}
   - component: {fileID: 1958382378}
-  m_Layer: 0
+  m_Layer: 11
   m_Name: Anchor
   m_TagString: Untagged
   m_Icon: {fileID: 0}
