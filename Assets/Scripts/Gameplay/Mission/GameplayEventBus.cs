@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -13,6 +14,8 @@ public static class GameplayEventBus
     public static event Action<CarryableItemType> SpawnRandomPickupRequested;
     public static event Action SpawnAllPickupsRequested;
 
+    private static readonly Dictionary<Type, Delegate> eventHandlers = new Dictionary<Type, Delegate>();
+
     [RuntimeInitializeOnLoadMethod(
         RuntimeInitializeLoadType.SubsystemRegistration
     )]
@@ -23,6 +26,55 @@ public static class GameplayEventBus
         SubmarineDamaged = null;
         SpawnRandomPickupRequested = null;
         SpawnAllPickupsRequested = null;
+        eventHandlers.Clear();
+    }
+
+    /// <summary>
+    /// 订阅事件。
+    /// </summary>
+    public static void Subscribe<T>(Action<T> handler) where T : struct
+    {
+        Type eventType = typeof(T);
+        if (eventHandlers.TryGetValue(eventType, out Delegate existingHandler))
+        {
+            eventHandlers[eventType] = Delegate.Combine(existingHandler, handler);
+        }
+        else
+        {
+            eventHandlers[eventType] = handler;
+        }
+    }
+
+    /// <summary>
+    /// 取消订阅事件。
+    /// </summary>
+    public static void Unsubscribe<T>(Action<T> handler) where T : struct
+    {
+        Type eventType = typeof(T);
+        if (eventHandlers.TryGetValue(eventType, out Delegate existingHandler))
+        {
+            Delegate newHandler = Delegate.Remove(existingHandler, handler);
+            if (newHandler == null)
+            {
+                eventHandlers.Remove(eventType);
+            }
+            else
+            {
+                eventHandlers[eventType] = newHandler;
+            }
+        }
+    }
+
+    /// <summary>
+    /// 发布事件。
+    /// </summary>
+    public static void Publish<T>(T eventData) where T : struct
+    {
+        Type eventType = typeof(T);
+        if (eventHandlers.TryGetValue(eventType, out Delegate handler))
+        {
+            (handler as Action<T>)?.Invoke(eventData);
+        }
     }
 
     public static void RequestSubmarineDamage(

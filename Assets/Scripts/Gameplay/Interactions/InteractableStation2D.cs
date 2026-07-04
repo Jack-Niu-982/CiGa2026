@@ -180,7 +180,7 @@ public class InteractableStation2D : MonoBehaviour
                 return false;
             }
 
-            CarryableItem2D carriedItem = carryInteractor.CarriedItem;
+            CarryableItem2D carriedItem = carryInteractor.HeldItem;
 
             if (carriedItem == null ||
                 carriedItem.ItemType != requirement.requiredItemType)
@@ -225,9 +225,9 @@ public class InteractableStation2D : MonoBehaviour
         PlayerCarryInteractor2D carryInteractor =
             player.GetComponent<PlayerCarryInteractor2D>();
 
-        if (carryInteractor != null && carryInteractor.CarriedItem != null)
+        if (carryInteractor != null && carryInteractor.HeldItem != null)
         {
-            Destroy(carryInteractor.CarriedItem.gameObject);
+            Destroy(carryInteractor.HeldItem.gameObject);
         }
     }
 
