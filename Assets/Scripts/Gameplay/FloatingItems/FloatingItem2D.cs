@@ -245,6 +245,15 @@ public class FloatingItem2D : MonoBehaviour
         anchorTransform = anchor;
         isBeingPulled = true;
 
+        // 停止闪烁动画
+        if (blinkSequence != null && blinkSequence.IsActive())
+        {
+            blinkSequence.Kill();
+        }
+
+        // 重置透明度
+        SetVisualsAlpha(1f);
+
         SetColliderEnabled(false);
 
         if (itemRigidbody != null)
@@ -301,40 +310,16 @@ public class FloatingItem2D : MonoBehaviour
 
         itemRigidbody.MovePosition(nextPosition);
 
-        if (anchorTransform == null)
+        // 检查是否到达下落点
+        float distanceToDropPoint =
+            Vector2.Distance(
+                nextPosition,
+                activeDropPoint.DropWorldPosition
+            );
+
+        if (distanceToDropPoint <= arrivalDistance * 3f)
         {
-            float remainingDistance =
-                Vector2.Distance(
-                    nextPosition,
-                    targetPosition
-                );
-
-            if (remainingDistance <= arrivalDistance)
-            {
-                SpawnPickupAndDestroy(targetPosition);
-            }
-        }
-        else
-        {
-            float distanceToAnchor =
-                Vector2.Distance(
-                    nextPosition,
-                    (Vector2)anchorTransform.position
-                );
-
-            if (distanceToAnchor <= arrivalDistance * 2f)
-            {
-                float distanceToDropPoint =
-                    Vector2.Distance(
-                        (Vector2)anchorTransform.position,
-                        activeDropPoint.DropWorldPosition
-                    );
-
-                if (distanceToDropPoint <= arrivalDistance * 3f)
-                {
-                    SpawnPickupAndDestroy(activeDropPoint.DropWorldPosition);
-                }
-            }
+            SpawnPickupAndDestroy(activeDropPoint.DropWorldPosition);
         }
     }
 
