@@ -116,14 +116,22 @@ public partial class PlayerController
 
     private void HandleHorizontalLadderExit()
     {
+        PlayerSettings settings =
+            SettingManager.Player;
+
+        if (settings == null)
+        {
+            return;
+        }
+
         if (Mathf.Abs(horizontalInput) >=
-            ladderExitInputThreshold)
+            settings.ladderExitInputThreshold)
         {
             ladderExitTimer +=
                 Time.deltaTime;
 
             if (ladderExitTimer >=
-                ladderExitHoldTime)
+                settings.ladderExitHoldTime)
             {
                 ExitClimbing();
             }
@@ -137,6 +145,14 @@ public partial class PlayerController
 
     private void ApplyNormalMovement()
     {
+        PlayerSettings settings =
+            SettingManager.Player;
+
+        if (settings == null)
+        {
+            return;
+        }
+
         Vector2 platformVelocity =
             Vector2.zero;
 
@@ -153,13 +169,13 @@ public partial class PlayerController
 
         velocity.x =
             platformVelocity.x +
-            horizontalInput * moveSpeed;
+            horizontalInput * settings.moveSpeed;
 
         if (jumpQueued)
         {
             velocity.y =
                 platformVelocity.y +
-                jumpForce;
+                settings.jumpForce;
 
             jumpQueued = false;
             isGrounded = false;

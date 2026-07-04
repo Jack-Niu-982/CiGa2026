@@ -1,4 +1,5 @@
 using UnityEngine;
+using DG.Tweening;
 
 /// <summary>
 /// 船外漂浮物。负责漂移、被锚拉回船体，并在抵达后生成玩家可拾取物。
@@ -24,10 +25,6 @@ public class FloatingItem2D : MonoBehaviour
     [SerializeField]
     private float angularSpeed = 20f;
 
-    [Min(0f)]
-    [SerializeField]
-    private float lifetime = 45f;
-
     [Header("锚拉回")]
     [SerializeField]
     private bool canBeCaughtByAnchor = true;
@@ -42,10 +39,14 @@ public class FloatingItem2D : MonoBehaviour
 
     private Rigidbody2D itemRigidbody;
     private Collider2D[] colliders;
+    private SpriteRenderer[] spriteRenderers;
     private AnchorItemDropPoint2D activeDropPoint;
     private float lifeTimer;
+    private float lifetime;
     private bool isBeingPulled;
     private bool hasResolved;
+    private bool isBlinking;
+    private Sequence blinkSequence;
 
     public CarryableItemType ItemType => itemType;
     public bool CanBeCaughtByAnchor => canBeCaughtByAnchor && !isBeingPulled && !hasResolved;
@@ -59,12 +60,55 @@ public class FloatingItem2D : MonoBehaviour
 
     private void Awake()
     {
+        FloatingItemSettings settings =
+            SettingManager.FloatingItem;
+
         itemRigidbody = GetComponent<Rigidbody2D>();
         colliders = GetComponentsInChildren<Collider2D>(true);
+        spriteRenderers = GetComponentsInChildren<SpriteRenderer>(true);
 
         itemRigidbody.bodyType = RigidbodyType2D.Kinematic;
         itemRigidbody.gravityScale = 0f;
         itemRigidbody.simulated = true;
+
+        if (settings != null)
+        {
+            lifetime = Random.Range(
+                settings.minLifetime,
+                settings.maxLifetime
+            );
+
+            PlaySpawnAnimation(settings);
+        }
+        else
+        {
+            lifetime = 45f;
+        }
+    }
+
+    private void PlaySpawnAnimation(FloatingItemSettings settings)
+    {
+        transform.localScale = Vector3.one * settings.spawnStartScale;
+
+        foreach (var renderer in spriteRenderers)
+        {
+            if (renderer != null)
+            {
+                Color color = renderer.color;
+                color.a = 0f;
+                renderer.color = color;
+            }
+        }
+
+        transform.DOScale(Vector3.one, settings.spawnScaleDuration)
+            .SetEase(settings.spawnEase);
+
+        DOTween.To(
+            () => 0f,
+            alpha => SetAlpha(alpha),
+            1f,
+            settings.spawnFadeDuration
+        ).SetEase(Ease.InOutQuad);
     }
 
     private void FixedUpdate()
@@ -92,11 +136,93 @@ public class FloatingItem2D : MonoBehaviour
             return;
         }
 
+        FloatingItemSettings settings =
+            SettingManager.FloatingItem;
+
+        if (settings == null)
+        {
+            return;
+        }
+
         lifeTimer += Time.deltaTime;
+
+        float remainingTime = lifetime - lifeTimer;
+
+        if (!isBlinking && remainingTime <= settings.blinkStartTime)
+        {
+            StartBlinking(settings);
+        }
 
         if (lifeTimer >= lifetime)
         {
             Destroy(gameObject);
+        }
+    }
+
+    private void StartBlinking(FloatingItemSettings settings)
+    {
+        isBlinking = true;
+
+        if (spriteRenderers == null || spriteRenderers.Length == 0)
+        {
+            return;
+        }
+
+        blinkSequence = DOTween.Sequence();
+
+        for (int i = 0; i < settings.blinkCount; i++)
+        {
+            blinkSequence.Append(
+                DOTween.To(
+                    () => spriteRenderers[0].color.a,
+                    alpha => SetAlpha(alpha),
+                    settings.minAlpha,
+                    settings.blinkDuration * 0.5f
+                ).SetEase(Ease.InOutSine)
+            );
+
+            if (i < settings.blinkCount - 1)
+            {
+                blinkSequence.Append(
+                    DOTween.To(
+                        () => spriteRenderers[0].color.a,
+                        alpha => SetAlpha(alpha),
+                        settings.maxAlpha,
+                        settings.blinkDuration * 0.5f
+                    ).SetEase(Ease.InOutSine)
+                );
+            }
+        }
+
+        blinkSequence.OnComplete(() =>
+        {
+            Destroy(gameObject);
+        });
+    }
+
+    private void SetAlpha(float alpha)
+    {
+        if (spriteRenderers == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < spriteRenderers.Length; i++)
+        {
+            if (spriteRenderers[i] != null)
+            {
+                Color color = spriteRenderers[i].color;
+                color.a = alpha;
+                spriteRenderers[i].color = color;
+            }
+        }
+    }
+
+    private void OnDestroy()
+    {
+        if (blinkSequence != null && blinkSequence.IsActive())
+        {
+            blinkSequence.Kill();
         }
     }
 

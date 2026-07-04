@@ -5,6 +5,14 @@ public partial class PlayerController
 
     private void UpdateNearbyLadder()
     {
+        PlayerSettings settings =
+            SettingManager.Player;
+
+        if (settings == null)
+        {
+            return;
+        }
+
         Vector2 checkPosition =
             ladderCheck != null
                 ? ladderCheck.position
@@ -18,7 +26,7 @@ public partial class PlayerController
         int resultCount =
             Physics2D.OverlapBoxNonAlloc(
                 checkPosition,
-                ladderCheckSize,
+                settings.ladderCheckSize,
                 checkAngle,
                 ladderResults,
                 ladderLayer
@@ -67,6 +75,14 @@ public partial class PlayerController
 
     private void ApplyClimbingMovement()
     {
+        PlayerSettings settings =
+            SettingManager.Player;
+
+        if (settings == null)
+        {
+            return;
+        }
+
         if (activeLadder == null)
         {
             ExitClimbing();
@@ -122,12 +138,12 @@ public partial class PlayerController
                 0f,
                 ladderHalfLength -
                 playerHalfExtentOnLadder -
-                ladderEndPadding
+                settings.ladderEndPadding
             );
 
         float wantedClimbSpeed =
             verticalInput *
-            climbSpeed;
+            settings.climbSpeed;
 
         float wantedVerticalDistance =
             currentVerticalDistance +
@@ -150,13 +166,13 @@ public partial class PlayerController
 
         float horizontalCorrectionSpeed = 0f;
 
-        if (snapToLadderCenter)
+        if (settings.snapToLadderCenter)
         {
             float nextHorizontalDistance =
                 Mathf.MoveTowards(
                     currentHorizontalDistance,
                     0f,
-                    ladderSnapSpeed *
+                    settings.ladderSnapSpeed *
                     Time.fixedDeltaTime
                 );
 
@@ -256,6 +272,15 @@ public partial class PlayerController
         Collider2D colliderToIgnore,
         out bool ignoredColliderWasDetected)
     {
+        PlayerSettings settings =
+            SettingManager.Player;
+
+        if (settings == null)
+        {
+            ignoredColliderWasDetected = false;
+            return null;
+        }
+
         ignoredColliderWasDetected = false;
 
         Vector2 checkPosition =
@@ -271,7 +296,7 @@ public partial class PlayerController
         int resultCount =
             Physics2D.OverlapBoxNonAlloc(
                 checkPosition,
-                ladderLandingCheckSize,
+                settings.ladderLandingCheckSize,
                 checkAngle,
                 landingResults,
                 submarineInteriorLayer
@@ -361,6 +386,14 @@ public partial class PlayerController
 
     private void EnterClimbing()
     {
+        PlayerSettings settings =
+            SettingManager.Player;
+
+        if (settings == null)
+        {
+            return;
+        }
+
         if (isClimbing ||
             isOperating ||
             detectedLadder == null)
@@ -386,7 +419,7 @@ public partial class PlayerController
                 activeLadder
             );
 
-        if (disableBodyColliderWhileClimbing &&
+        if (settings.disableBodyColliderWhileClimbing &&
             bodyCollider != null)
         {
             bodyCollider.enabled = false;

@@ -31,6 +31,14 @@ public partial class PlayerController
 
     private void OnDrawGizmosSelected()
     {
+        PlayerSettings settings =
+            SettingManager.Player;
+
+        if (settings == null)
+        {
+            return;
+        }
+
         Vector3 groundPosition =
             groundCheck != null
                 ? groundCheck.position
@@ -38,7 +46,7 @@ public partial class PlayerController
 
         Gizmos.DrawWireSphere(
             groundPosition,
-            groundCheckRadius
+            settings.groundCheckRadius
         );
 
         DrawWireBox(
@@ -48,7 +56,7 @@ public partial class PlayerController
             ladderCheck != null
                 ? ladderCheck.eulerAngles.z
                 : transform.eulerAngles.z,
-            ladderCheckSize
+            settings.ladderCheckSize
         );
 
         DrawWireBox(
@@ -58,7 +66,7 @@ public partial class PlayerController
             ladderLandingCheck != null
                 ? ladderLandingCheck.eulerAngles.z
                 : transform.eulerAngles.z,
-            ladderLandingCheckSize
+            settings.ladderLandingCheckSize
         );
     }
 

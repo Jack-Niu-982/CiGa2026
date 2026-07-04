@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c76312f4dd85eb544bc0b3fdbe56a7c0, type: 3}
+  m_Name: AnchorSettings
+  m_EditorClassIdentifier: 
+  maxRopeLength: 15
+  anchorOffset: 0.5
+  anchorShootSpeed: 25
+  anchorRetractSpeed: 18
+  wallHitPullDelay: 0.5
+  wallPullImpulse: 6
+  inverseWidthByLength: 1
+  ropeWidthAtReferenceLength: 0.07
+  widthReferenceLength: 5
+  minimumRopeWidth: 0.025
+  maximumRopeWidth: 0.13
+  ropeColor: {r: 1, g: 1, b: 1, a: 1}
+  rotationSpeed: 90
+  maxRotationAngle: 45
+  rotationInputDeadZone: 0.1
+  invertRotationControl: 0
+  enableWallParticleFeedback: 1
+  wallHitParticleCount: 18
+  wallHitParticleSize: 0.18
+  wallHitParticleColor: {r: 0.55, g: 0.9, b: 1, a: 0.55}
+  wallRetractParticleCount: 12
+  wallRetractParticleSize: 0.14
+  wallRetractParticleColor: {r: 0.75, g: 0.92, b: 1, a: 0.42}
+  wallParticleLifetime: 0.42
+  wallParticleOutwardSpeed: 1.8

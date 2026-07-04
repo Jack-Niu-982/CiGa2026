@@ -33,19 +33,9 @@ public partial class PlayerController : MonoBehaviour
 
     [SerializeField] private Animator animator;
 
-    [Header("水平移动")]
-    [Min(0f)]
-    [SerializeField] private float moveSpeed = 6f;
-
     [Header("跳跃")]
-    [Min(0f)]
-    [SerializeField] private float jumpForce = 12f;
-
     [Tooltip("放在玩家脚底的空物体。")]
     [SerializeField] private Transform groundCheck;
-
-    [Min(0.01f)]
-    [SerializeField] private float groundCheckRadius = 0.08f;
 
     [Tooltip("普通状态下可以站立的所有地面图层。")]
     [SerializeField] private LayerMask groundLayer;
@@ -54,56 +44,19 @@ public partial class PlayerController : MonoBehaviour
     [Tooltip("放在玩家身体中心的空物体。")]
     [SerializeField] private Transform ladderCheck;
 
-    [SerializeField]
-    private Vector2 ladderCheckSize =
-        new Vector2(0.8f, 1.4f);
-
     [Tooltip("只选择Ladder图层。")]
     [SerializeField] private LayerMask ladderLayer;
-
-    [Header("梯子移动")]
-    [Min(0f)]
-    [SerializeField] private float climbSpeed = 4f;
-
-    [Tooltip("攀爬时是否自动对齐梯子中心。")]
-    [SerializeField] private bool snapToLadderCenter = true;
-
-    [Min(0f)]
-    [SerializeField] private float ladderSnapSpeed = 8f;
-
-    [Tooltip("玩家与梯子上下边缘之间保留的距离。")]
-    [Min(0f)]
-    [SerializeField] private float ladderEndPadding = 0.02f;
-
-    [Tooltip("攀爬时长按左或右多久后退出。")]
-    [Min(0f)]
-    [SerializeField] private float ladderExitHoldTime = 0.2f;
-
-    [Tooltip("水平输入超过该值后开始计算退出时间。")]
-    [Range(0f, 1f)]
-    [SerializeField] private float ladderExitInputThreshold = 0.5f;
 
     [Header("攀爬落地检测")]
     [Tooltip("放在玩家脚底，用于攀爬时检测内部平台。")]
     [SerializeField] private Transform ladderLandingCheck;
 
-    [SerializeField]
-    private Vector2 ladderLandingCheckSize =
-        new Vector2(0.45f, 0.12f);
-
     [Tooltip("这里只选择SubmarineInterior图层。")]
     [SerializeField] private LayerMask submarineInteriorLayer;
-
-    [Header("攀爬Collider")]
-    [Tooltip("进入攀爬后关闭玩家主体Collider。")]
-    [SerializeField] private bool disableBodyColliderWhileClimbing = true;
 
     [Header("交互状态")]
     [Tooltip("通常会自动获取玩家身上的PlayerOperateInteractor2D。")]
     [SerializeField] private PlayerOperateInteractor2D operateInteractor;
-
-    [Header("物理设置")]
-    [SerializeField] private bool freezeRotation = true;
 
     [Header("Animator参数")]
     [Tooltip("Animator中没有对应参数时会自动忽略。")]
@@ -164,6 +117,9 @@ public partial class PlayerController : MonoBehaviour
 
     private void Awake()
     {
+        PlayerSettings settings =
+            SettingManager.Player;
+
         if (rb == null)
         {
             rb = GetComponent<Rigidbody2D>();
@@ -183,7 +139,7 @@ public partial class PlayerController : MonoBehaviour
         normalGravityScale =
             rb.gravityScale;
 
-        if (freezeRotation)
+        if (settings != null && settings.freezeRotation)
         {
             rb.freezeRotation = true;
         }

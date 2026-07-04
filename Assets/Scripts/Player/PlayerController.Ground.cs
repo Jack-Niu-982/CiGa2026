@@ -5,6 +5,14 @@ public partial class PlayerController
 
     private void UpdateGroundedState()
     {
+        PlayerSettings settings =
+            SettingManager.Player;
+
+        if (settings == null)
+        {
+            return;
+        }
+
         if (isClimbing)
         {
             isGrounded = false;
@@ -18,7 +26,7 @@ public partial class PlayerController
         currentGroundCollider =
             Physics2D.OverlapCircle(
                 checkPosition,
-                groundCheckRadius,
+                settings.groundCheckRadius,
                 groundLayer
             );
 
