@@ -79,6 +79,7 @@ GameObject:
   - component: {fileID: 4881310542966185538}
   - component: {fileID: 1625250482858157904}
   - component: {fileID: 1461436106843939148}
+  - component: {fileID: 5575726328903404364}
   m_Layer: 3
   m_Name: Player
   m_TagString: Player
@@ -253,16 +254,16 @@ MonoBehaviour:
   playerInput: {fileID: 764227826077273889}
   rb: {fileID: 2946423286931534010}
   bodyCollider: {fileID: 0}
-  animator: {fileID: 0}
+  animator: {fileID: 5575726328903404364}
   moveSpeed: 1.5
-  jumpForce: 3
+  jumpForce: 6
   groundCheck: {fileID: 4184358547411740323}
   groundCheckRadius: 0.15
   groundLayer:
     serializedVersion: 2
     m_Bits: 128
   ladderCheck: {fileID: 4184358547411740323}
-  ladderCheckSize: {x: 0.8, y: 1.4}
+  ladderCheckSize: {x: 0.1, y: 0.3}
   ladderLayer:
     serializedVersion: 2
     m_Bits: 256
@@ -360,3 +361,24 @@ MonoBehaviour:
   holdParent: {fileID: 7134839496912126229}
   holdLocalOffset: {x: 0.35, y: 0.15}
   dropLocalOffset: {x: 0.55, y: 0}
+--- !u!95 &5575726328903404364
+Animator:
+  serializedVersion: 5
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8172673515402726401}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: 19ac4ff65f2fc9a4bad3d6b51e365e42, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0

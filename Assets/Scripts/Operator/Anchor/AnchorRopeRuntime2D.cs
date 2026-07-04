@@ -31,6 +31,8 @@ public class AnchorRopeRuntime2D : MonoBehaviour
     private LineRenderer lineRenderer;
     private AnchorLaunchDetector2D detector;
     private Transform anchorTransform;
+    private AnchorAudioFeedback2D audioFeedback;
+    private ParticleSystem wallParticleSystem;
 
     private Vector3 anchorOriginalLocalPosition;
     private Quaternion anchorOriginalLocalRotation;
@@ -51,6 +53,8 @@ public class AnchorRopeRuntime2D : MonoBehaviour
     private bool initialized;
 
     private Material runtimeLineMaterial;
+    private Material runtimeParticleMaterial;
+    private Texture2D runtimeParticleTexture;
 
     public bool IsAnchorActive =>
         currentState != AnchorState.Idle;
@@ -131,21 +135,13 @@ public class AnchorRopeRuntime2D : MonoBehaviour
 
     private void OnDestroy()
     {
-        if (runtimeLineMaterial == null)
-        {
-            return;
-        }
-
-        if (Application.isPlaying)
-        {
-            Destroy(runtimeLineMaterial);
-        }
-        else
-        {
-            DestroyImmediate(runtimeLineMaterial);
-        }
+        DestroyRuntimeObject(runtimeLineMaterial);
+        DestroyRuntimeObject(runtimeParticleMaterial);
+        DestroyRuntimeObject(runtimeParticleTexture);
 
         runtimeLineMaterial = null;
+        runtimeParticleMaterial = null;
+        runtimeParticleTexture = null;
     }
 
     /// <summary>
@@ -292,6 +288,11 @@ public class AnchorRopeRuntime2D : MonoBehaviour
         currentState =
             AnchorState.Flying;
 
+        if (audioFeedback != null)
+        {
+            audioFeedback.PlayLaunch();
+        }
+
         if (settings.ShowDebugLog)
         {
             Debug.Log(
@@ -351,10 +352,28 @@ public class AnchorRopeRuntime2D : MonoBehaviour
             return;
         }
 
+        bool wasAttachedToWall =
+            currentState == AnchorState.WaitingWallPull;
+
         wallPullDelayTimer = 0f;
 
         currentState =
             AnchorState.Retracting;
+
+        if (audioFeedback != null)
+        {
+            audioFeedback.PlayRetract();
+        }
+
+        if (wasAttachedToWall)
+        {
+            PlayWallParticleBurst(
+                anchorPoint,
+                settings.WallRetractParticleCount,
+                settings.WallRetractParticleSize,
+                settings.WallRetractParticleColor
+            );
+        }
 
         if (lineRenderer != null)
         {
@@ -378,6 +397,9 @@ public class AnchorRopeRuntime2D : MonoBehaviour
 
         detector =
             settings.LaunchDetector;
+
+        audioFeedback =
+            GetComponent<AnchorAudioFeedback2D>();
 
         if (lineRenderer == null)
         {
@@ -674,6 +696,38 @@ public class AnchorRopeRuntime2D : MonoBehaviour
             anchorPoint
         );
 
+        if (audioFeedback != null)
+        {
+            audioFeedback.PlayHit();
+        }
+
+        AnchorDestructible2D destructible =
+            hit.collider != null
+                ? hit.collider.GetComponentInParent<AnchorDestructible2D>()
+                : null;
+
+        if (destructible != null &&
+            destructible.TryDestroyByAnchor())
+        {
+            if (settings.ShowDebugLog)
+            {
+                Debug.Log(
+                    $"[Anchor Launcher] {gameObject.name} " +
+                    $"击中并清除了 {destructible.gameObject.name}，立即回收。"
+                );
+            }
+
+            BeginAutomaticRetract();
+            return;
+        }
+
+        PlayWallParticleBurst(
+            anchorPoint,
+            settings.WallHitParticleCount,
+            settings.WallHitParticleSize,
+            settings.WallHitParticleColor
+        );
+
         /*
          * 命中墙壁后只短暂停留。
          *
@@ -808,10 +862,28 @@ public class AnchorRopeRuntime2D : MonoBehaviour
             return;
         }
 
+        bool wasAttachedToWall =
+            currentState == AnchorState.WaitingWallPull;
+
         wallPullDelayTimer = 0f;
 
         currentState =
             AnchorState.Retracting;
+
+        if (audioFeedback != null)
+        {
+            audioFeedback.PlayRetract();
+        }
+
+        if (wasAttachedToWall)
+        {
+            PlayWallParticleBurst(
+                anchorPoint,
+                settings.WallRetractParticleCount,
+                settings.WallRetractParticleSize,
+                settings.WallRetractParticleColor
+            );
+        }
 
         if (lineRenderer != null)
         {
@@ -822,6 +894,244 @@ public class AnchorRopeRuntime2D : MonoBehaviour
          * 播放对应玩家自己的回收震动。
          */
         settings.NotifyAutomaticRetractStarted();
+    }
+
+    private void PlayWallParticleBurst(
+        Vector2 worldPosition,
+        int particleCount,
+        float particleSize,
+        Color particleColor)
+    {
+        if (!settings.EnableWallParticleFeedback ||
+            particleCount <= 0)
+        {
+            return;
+        }
+
+        EnsureWallParticleSystem();
+
+        if (wallParticleSystem == null)
+        {
+            return;
+        }
+
+        float angleOffset =
+            Random.Range(0f, 360f);
+
+        for (int i = 0;
+             i < particleCount;
+             i++)
+        {
+            float angle =
+                angleOffset +
+                360f * i / particleCount;
+
+            Vector2 direction =
+                new Vector2(
+                    Mathf.Cos(angle * Mathf.Deg2Rad),
+                    Mathf.Sin(angle * Mathf.Deg2Rad)
+                );
+
+            ParticleSystem.EmitParams emitParams =
+                new ParticleSystem.EmitParams
+                {
+                    position = new Vector3(
+                        worldPosition.x,
+                        worldPosition.y,
+                        anchorWorldZ
+                    ),
+                    velocity =
+                        direction *
+                        settings.WallParticleOutwardSpeed *
+                        Random.Range(0.8f, 1.2f),
+                    startLifetime =
+                        settings.WallParticleLifetime,
+                    startSize =
+                        particleSize *
+                        Random.Range(0.85f, 1.15f),
+                    startColor =
+                        particleColor
+                };
+
+            wallParticleSystem.Emit(
+                emitParams,
+                1
+            );
+        }
+    }
+
+    private void EnsureWallParticleSystem()
+    {
+        if (wallParticleSystem != null)
+        {
+            return;
+        }
+
+        GameObject particleObject =
+            new GameObject("Wall Burst Particles");
+
+        particleObject.transform.SetParent(
+            transform,
+            false
+        );
+
+        wallParticleSystem =
+            particleObject.AddComponent<ParticleSystem>();
+
+        ParticleSystem.MainModule main =
+            wallParticleSystem.main;
+
+        main.loop = false;
+        main.playOnAwake = false;
+        main.simulationSpace =
+            ParticleSystemSimulationSpace.World;
+        main.startSpeed = 0f;
+        main.startLifetime =
+            settings.WallParticleLifetime;
+        main.startSize = 0.1f;
+        main.maxParticles =
+            Mathf.Max(
+                64,
+                Mathf.Max(
+                    settings.WallHitParticleCount,
+                    settings.WallRetractParticleCount
+                ) * 4
+            );
+
+        ParticleSystem.EmissionModule emission =
+            wallParticleSystem.emission;
+
+        emission.enabled = false;
+
+        ParticleSystem.ShapeModule shape =
+            wallParticleSystem.shape;
+
+        shape.enabled = false;
+
+        ParticleSystemRenderer particleRenderer =
+            particleObject.GetComponent<ParticleSystemRenderer>();
+
+        if (particleRenderer == null)
+        {
+            particleRenderer =
+                particleObject.AddComponent<ParticleSystemRenderer>();
+        }
+
+        if (particleRenderer != null)
+        {
+            particleRenderer.renderMode =
+                ParticleSystemRenderMode.Billboard;
+            particleRenderer.sharedMaterial =
+                CreateRoundParticleMaterial();
+            particleRenderer.sortingLayerName =
+                settings.WallParticleSortingLayerName;
+            particleRenderer.sortingOrder =
+                settings.WallParticleOrderInLayer;
+        }
+    }
+
+    private Material CreateRoundParticleMaterial()
+    {
+        if (runtimeParticleMaterial != null)
+        {
+            return runtimeParticleMaterial;
+        }
+
+        Shader particleShader =
+            Shader.Find("Sprites/Default");
+
+        if (particleShader == null)
+        {
+            Debug.LogWarning(
+                $"[Anchor Rope Runtime] {gameObject.name} " +
+                "找不到 Sprites/Default Shader，墙面粒子可能无法显示。"
+            );
+
+            return null;
+        }
+
+        const int textureSize = 32;
+
+        runtimeParticleTexture =
+            new Texture2D(
+                textureSize,
+                textureSize,
+                TextureFormat.RGBA32,
+                false
+            )
+            {
+                name = "Anchor Round Particle Texture",
+                filterMode = FilterMode.Bilinear,
+                wrapMode = TextureWrapMode.Clamp
+            };
+
+        Color[] pixels =
+            new Color[textureSize * textureSize];
+
+        Vector2 center =
+            new Vector2(
+                (textureSize - 1) * 0.5f,
+                (textureSize - 1) * 0.5f
+            );
+
+        float radius =
+            textureSize * 0.48f;
+
+        for (int y = 0;
+             y < textureSize;
+             y++)
+        {
+            for (int x = 0;
+                 x < textureSize;
+                 x++)
+            {
+                float normalizedDistance =
+                    Vector2.Distance(
+                        new Vector2(x, y),
+                        center
+                    ) / radius;
+
+                float alpha =
+                    1f - Mathf.SmoothStep(
+                        0.78f,
+                        1f,
+                        normalizedDistance
+                    );
+
+                pixels[y * textureSize + x] =
+                    new Color(1f, 1f, 1f, alpha);
+            }
+        }
+
+        runtimeParticleTexture.SetPixels(pixels);
+        runtimeParticleTexture.Apply(false, true);
+
+        runtimeParticleMaterial =
+            new Material(particleShader)
+            {
+                name = "Anchor Round Particle Material",
+                mainTexture = runtimeParticleTexture
+            };
+
+        return runtimeParticleMaterial;
+    }
+
+    private void DestroyRuntimeObject(
+        Object runtimeObject)
+    {
+        if (runtimeObject == null)
+        {
+            return;
+        }
+
+        if (Application.isPlaying)
+        {
+            Destroy(runtimeObject);
+        }
+        else
+        {
+            DestroyImmediate(runtimeObject);
+        }
     }
 
     private void UpdateAnchorRetract()

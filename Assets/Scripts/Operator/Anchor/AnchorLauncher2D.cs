@@ -67,6 +67,48 @@ public class AnchorLauncher2D : MonoBehaviour
     [Min(0f)]
     [SerializeField] private float wallPullImpulse = 6f;
 
+    [Header("墙面粒子反馈")]
+    [Tooltip("命中墙面以及从墙面开始回收时，是否播放向外扩散的圆形粒子。")]
+    [SerializeField] private bool enableWallParticleFeedback = true;
+
+    [Tooltip("命中墙面时生成的粒子数量。")]
+    [Min(0)]
+    [SerializeField] private int wallHitParticleCount = 18;
+
+    [Tooltip("命中墙面粒子的直径。")]
+    [Min(0.001f)]
+    [SerializeField] private float wallHitParticleSize = 0.18f;
+
+    [Tooltip("命中墙面粒子的颜色；Alpha 控制半透明程度。")]
+    [SerializeField] private Color wallHitParticleColor =
+        new Color(0.55f, 0.9f, 1f, 0.55f);
+
+    [Tooltip("从墙面开始回收时生成的粒子数量。")]
+    [Min(0)]
+    [SerializeField] private int wallRetractParticleCount = 12;
+
+    [Tooltip("从墙面开始回收时粒子的直径。")]
+    [Min(0.001f)]
+    [SerializeField] private float wallRetractParticleSize = 0.14f;
+
+    [Tooltip("从墙面开始回收时粒子的颜色；Alpha 控制半透明程度。")]
+    [SerializeField] private Color wallRetractParticleColor =
+        new Color(0.75f, 0.92f, 1f, 0.42f);
+
+    [Tooltip("粒子存活时间。")]
+    [Min(0.01f)]
+    [SerializeField] private float wallParticleLifetime = 0.42f;
+
+    [Tooltip("粒子从锚点向外扩散的速度。")]
+    [Min(0f)]
+    [SerializeField] private float wallParticleOutwardSpeed = 1.8f;
+
+    [Tooltip("粒子的 Sorting Layer。")]
+    [SerializeField] private string wallParticleSortingLayerName = "Default";
+
+    [Tooltip("粒子的层内顺序。")]
+    [SerializeField] private int wallParticleOrderInLayer = 10;
+
     [Header("绳子宽度")]
     [SerializeField] private bool inverseWidthByLength = true;
     [Min(0.001f)][SerializeField] private float ropeWidthAtReferenceLength = 0.07f;
@@ -161,6 +203,39 @@ public class AnchorLauncher2D : MonoBehaviour
 
     internal float WallPullImpulse =>
         wallPullImpulse;
+
+    internal bool EnableWallParticleFeedback =>
+        enableWallParticleFeedback;
+
+    internal int WallHitParticleCount =>
+        wallHitParticleCount;
+
+    internal float WallHitParticleSize =>
+        wallHitParticleSize;
+
+    internal Color WallHitParticleColor =>
+        wallHitParticleColor;
+
+    internal int WallRetractParticleCount =>
+        wallRetractParticleCount;
+
+    internal float WallRetractParticleSize =>
+        wallRetractParticleSize;
+
+    internal Color WallRetractParticleColor =>
+        wallRetractParticleColor;
+
+    internal float WallParticleLifetime =>
+        wallParticleLifetime;
+
+    internal float WallParticleOutwardSpeed =>
+        wallParticleOutwardSpeed;
+
+    internal string WallParticleSortingLayerName =>
+        wallParticleSortingLayerName;
+
+    internal int WallParticleOrderInLayer =>
+        wallParticleOrderInLayer;
 
     internal bool InverseWidthByLength =>
         inverseWidthByLength;
@@ -346,6 +421,42 @@ public class AnchorLauncher2D : MonoBehaviour
             Mathf.Max(
                 0f,
                 wallPullImpulse
+            );
+
+        wallHitParticleCount =
+            Mathf.Max(
+                0,
+                wallHitParticleCount
+            );
+
+        wallHitParticleSize =
+            Mathf.Max(
+                0.001f,
+                wallHitParticleSize
+            );
+
+        wallRetractParticleCount =
+            Mathf.Max(
+                0,
+                wallRetractParticleCount
+            );
+
+        wallRetractParticleSize =
+            Mathf.Max(
+                0.001f,
+                wallRetractParticleSize
+            );
+
+        wallParticleLifetime =
+            Mathf.Max(
+                0.01f,
+                wallParticleLifetime
+            );
+
+        wallParticleOutwardSpeed =
+            Mathf.Max(
+                0f,
+                wallParticleOutwardSpeed
             );
 
         ropeWidthAtReferenceLength =

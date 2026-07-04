@@ -131,12 +131,15 @@ public class AnchorLaunchDetector2D : MonoBehaviour
         Vector2 direction =
             movement / distance;
 
+        /*
+         * 除了可固定墙体，也要看见带 AnchorDestructible2D 的敌人。
+         * 敌人不需要加入 Wall Layer，避免被当成锚点并产生潜艇拉拽冲量。
+         */
         RaycastHit2D[] hits =
             Physics2D.RaycastAll(
                 previousPosition,
                 direction,
-                distance,
-                attachableLayer
+                distance
             );
 
         float nearestDistance =
@@ -152,9 +155,22 @@ public class AnchorLaunchDetector2D : MonoBehaviour
                 continue;
             }
 
+            AnchorDestructible2D destructible =
+                hitCollider.GetComponentInParent<AnchorDestructible2D>();
+
+            bool isAttachableLayer =
+                (attachableLayer.value &
+                 (1 << hitCollider.gameObject.layer)) != 0;
+
+            if (!isAttachableLayer && destructible == null)
+            {
+                continue;
+            }
+
             if (
                 !allowTriggerTargets &&
-                hitCollider.isTrigger
+                hitCollider.isTrigger &&
+                destructible == null
             )
             {
                 continue;
