@@ -1,5 +1,7 @@
+using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
+using UnityEditor.Animations;
 using UnityEngine;
 
 public static class FloatingItemPrefabBuilder
@@ -7,8 +9,16 @@ public static class FloatingItemPrefabBuilder
     private const string MenuPath = "CiGa2026/Build Floating Item Prefabs";
     private const string PrefabFolder = "Assets/Prefabs/Gameplay/Pickups";
     private const string FloatingPrefabFolder = "Assets/Prefabs/Gameplay/FloatingItems";
-    private const string SpriteFolder = PrefabFolder + "/GeneratedSprites";
+    private const string ArtFolder = "Assets/res";
+    private const string FuelSpritePath = ArtFolder + "/FuelPickupPlaceholder.png";
+    private const string TrashSpritePath = ArtFolder + "/floating_crushed_can_trash_icon_v3_20260704070253.png";
+    private const string ShieldSpritePath = ArtFolder + "/edited_shield_cat_paw_icon_20260704094010.png";
+    private const string FuelIdleFolder = ArtFolder + "/anim/fuel/idle";
+    private const string ShieldIdleFolder = ArtFolder + "/anim/shield/idle";
+    private const float ArtPixelsPerUnit = 256f;
+    private const float IdleAnimationFrameRate = 8f;
     private const float PickupRootScale = 0.1f;
+    private const float AnimatedItemScaleMultiplier = 0.7f;
     private const int PickupSortingOrder = 30;
 
     [MenuItem(MenuPath)]
@@ -16,51 +26,46 @@ public static class FloatingItemPrefabBuilder
     {
         EnsureFolder(PrefabFolder);
         EnsureFolder(FloatingPrefabFolder);
-        EnsureFolder(SpriteFolder);
-
         BuildItem(
             CarryableItemType.Fuel,
             "FuelPickup",
-            new Color(0.22f, 0.9f, 0.42f, 1f),
-            new Vector2(0.7f, 0.7f)
+            FuelSpritePath,
+            FuelIdleFolder,
+            "FuelIdle"
         );
 
         BuildItem(
             CarryableItemType.Trash,
             "TrashPickup",
-            new Color(0.62f, 0.62f, 0.56f, 1f),
-            new Vector2(0.75f, 0.55f)
+            TrashSpritePath,
+            null,
+            null
         );
 
         BuildItem(
             CarryableItemType.Shield,
             "ShieldPickup",
-            new Color(0.28f, 0.72f, 1f, 1f),
-            new Vector2(0.72f, 0.72f)
+            ShieldSpritePath,
+            ShieldIdleFolder,
+            "ShieldIdle"
         );
 
         BuildFloatingItem(
             CarryableItemType.Fuel,
             "FloatingFuel",
-            "FuelPickup",
-            new Color(0.22f, 0.9f, 0.42f, 1f),
-            new Vector2(0.9f, 0.9f)
+            "FuelPickup"
         );
 
         BuildFloatingItem(
             CarryableItemType.Trash,
             "FloatingTrash",
-            "TrashPickup",
-            new Color(0.62f, 0.62f, 0.56f, 1f),
-            new Vector2(0.95f, 0.7f)
+            "TrashPickup"
         );
 
         BuildFloatingItem(
             CarryableItemType.Shield,
             "FloatingShield",
-            "ShieldPickup",
-            new Color(0.28f, 0.72f, 1f, 1f),
-            new Vector2(0.9f, 0.9f)
+            "ShieldPickup"
         );
 
         AssetDatabase.SaveAssets();
@@ -72,9 +77,32 @@ public static class FloatingItemPrefabBuilder
     private static void BuildItem(
         CarryableItemType itemType,
         string prefabName,
-        Color placeholderColor,
-        Vector2 colliderSize)
+        string spritePath,
+        string idleAnimationFolder,
+        string idleAnimationName)
     {
+        Sprite sprite = PrepareSprite(spritePath);
+        RuntimeAnimatorController idleController = null;
+
+        if (!string.IsNullOrEmpty(idleAnimationFolder))
+        {
+            idleController = PrepareIdleAnimation(
+                idleAnimationFolder,
+                idleAnimationName,
+                out Sprite firstFrame
+            );
+
+            if (firstFrame != null)
+            {
+                sprite = firstFrame;
+            }
+        }
+
+        if (sprite == null)
+        {
+            return;
+        }
+
         GameObject root =
             new GameObject(prefabName);
 
@@ -82,24 +110,22 @@ public static class FloatingItemPrefabBuilder
         root.transform.rotation = Quaternion.identity;
         root.transform.localScale =
             new Vector3(
-                PickupRootScale,
-                PickupRootScale,
+                PickupRootScale * GetItemScaleMultiplier(itemType),
+                PickupRootScale * GetItemScaleMultiplier(itemType),
                 1f
             );
 
         SpriteRenderer spriteRenderer =
             root.AddComponent<SpriteRenderer>();
 
-        spriteRenderer.sprite =
-            CreatePlaceholderSprite(prefabName, placeholderColor);
+        spriteRenderer.sprite = sprite;
         spriteRenderer.color = Color.white;
         spriteRenderer.sortingOrder = PickupSortingOrder;
 
-        BoxCollider2D collider =
-            root.AddComponent<BoxCollider2D>();
+        AddAnimator(root, idleController);
 
-        collider.isTrigger = true;
-        collider.size = colliderSize;
+        PolygonCollider2D collider =
+            AddSpriteCollider(root, sprite);
 
         Rigidbody2D rigidbody =
             root.AddComponent<Rigidbody2D>();
@@ -138,9 +164,7 @@ public static class FloatingItemPrefabBuilder
     private static void BuildFloatingItem(
         CarryableItemType itemType,
         string prefabName,
-        string pickupPrefabName,
-        Color tintColor,
-        Vector2 colliderSize)
+        string pickupPrefabName)
     {
         CarryableItem2D pickupPrefab =
             AssetDatabase.LoadAssetAtPath<CarryableItem2D>(
@@ -158,6 +182,10 @@ public static class FloatingItemPrefabBuilder
 
         GameObject root =
             new GameObject(prefabName);
+
+        float itemScale = GetItemScaleMultiplier(itemType);
+        root.transform.localScale =
+            new Vector3(itemScale, itemScale, 1f);
 
         int floatingLayer =
             LayerMask.NameToLayer("FloatingItem");
@@ -179,14 +207,31 @@ public static class FloatingItemPrefabBuilder
                 pickupRenderer.sprite;
         }
 
-        spriteRenderer.color = tintColor;
+        spriteRenderer.color = Color.white;
         spriteRenderer.sortingOrder = 1;
 
-        BoxCollider2D collider =
-            root.AddComponent<BoxCollider2D>();
+        Animator pickupAnimator =
+            pickupPrefab.GetComponent<Animator>();
 
-        collider.isTrigger = true;
-        collider.size = colliderSize;
+        AddAnimator(
+            root,
+            pickupAnimator != null
+                ? pickupAnimator.runtimeAnimatorController
+                : null
+        );
+
+        if (spriteRenderer.sprite == null)
+        {
+            Debug.LogError(
+                $"[FloatingItemPrefabBuilder] Missing sprite on pickup prefab: {pickupPrefabName}"
+            );
+
+            UnityEngine.Object.DestroyImmediate(root);
+            return;
+        }
+
+        PolygonCollider2D collider =
+            AddSpriteCollider(root, spriteRenderer.sprite);
 
         Rigidbody2D rigidbody =
             root.AddComponent<Rigidbody2D>();
@@ -232,46 +277,193 @@ public static class FloatingItemPrefabBuilder
         }
     }
 
-    private static Sprite CreatePlaceholderSprite(
-        string assetName,
-        Color color)
+    private static float GetItemScaleMultiplier(
+        CarryableItemType itemType)
     {
-        string texturePath =
-            $"{SpriteFolder}/{assetName}Placeholder.png";
-
-        Texture2D existingTexture =
-            AssetDatabase.LoadAssetAtPath<Texture2D>(texturePath);
-
-        if (existingTexture == null)
+        switch (itemType)
         {
-            Texture2D texture =
-                new Texture2D(16, 16, TextureFormat.RGBA32, false);
+            case CarryableItemType.Fuel:
+            case CarryableItemType.Shield:
+                return AnimatedItemScaleMultiplier;
 
-            Color[] pixels =
-                Enumerable.Repeat(color, 16 * 16).ToArray();
+            default:
+                return 1f;
+        }
+    }
 
-            texture.SetPixels(pixels);
-            texture.Apply();
+    private static Sprite PrepareSprite(string texturePath)
+    {
+        TextureImporter importer =
+            AssetImporter.GetAtPath(texturePath) as TextureImporter;
 
-            System.IO.File.WriteAllBytes(texturePath, texture.EncodeToPNG());
-            UnityEngine.Object.DestroyImmediate(texture);
+        if (importer == null)
+        {
+            Debug.LogError(
+                $"[FloatingItemPrefabBuilder] Missing sprite asset: {texturePath}"
+            );
 
-            AssetDatabase.ImportAsset(texturePath);
-
-            TextureImporter importer =
-                AssetImporter.GetAtPath(texturePath) as TextureImporter;
-
-            if (importer != null)
-            {
-                importer.textureType = TextureImporterType.Sprite;
-                importer.spritePixelsPerUnit = 16f;
-                importer.mipmapEnabled = false;
-                importer.filterMode = FilterMode.Point;
-                importer.SaveAndReimport();
-            }
+            return null;
         }
 
+        importer.textureType = TextureImporterType.Sprite;
+        importer.spriteImportMode = SpriteImportMode.Single;
+        importer.spritePixelsPerUnit = ArtPixelsPerUnit;
+        importer.alphaIsTransparency = true;
+        importer.mipmapEnabled = false;
+        importer.SaveAndReimport();
+
         return AssetDatabase.LoadAssetAtPath<Sprite>(texturePath);
+    }
+
+    private static RuntimeAnimatorController PrepareIdleAnimation(
+        string frameFolder,
+        string animationName,
+        out Sprite firstFrame)
+    {
+        Sprite[] sprites = AssetDatabase
+            .FindAssets("t:Texture2D", new[] { frameFolder })
+            .Select(AssetDatabase.GUIDToAssetPath)
+            .Where(path => path.EndsWith(".png"))
+            .OrderBy(path => path)
+            .Select(PrepareSprite)
+            .Where(sprite => sprite != null)
+            .ToArray();
+
+        firstFrame = sprites.FirstOrDefault();
+
+        if (sprites.Length == 0)
+        {
+            Debug.LogError(
+                $"[FloatingItemPrefabBuilder] No idle frames found in: {frameFolder}"
+            );
+
+            return null;
+        }
+
+        string clipPath = $"{frameFolder}/{animationName}.anim";
+        AnimationClip clip =
+            AssetDatabase.LoadAssetAtPath<AnimationClip>(clipPath);
+
+        if (clip == null)
+        {
+            clip = new AnimationClip();
+            AssetDatabase.CreateAsset(clip, clipPath);
+        }
+
+        clip.name = animationName;
+        clip.frameRate = IdleAnimationFrameRate;
+
+        ObjectReferenceKeyframe[] keyframes =
+            new ObjectReferenceKeyframe[sprites.Length + 1];
+
+        for (int i = 0; i < sprites.Length; i++)
+        {
+            keyframes[i] = new ObjectReferenceKeyframe
+            {
+                time = i / IdleAnimationFrameRate,
+                value = sprites[i]
+            };
+        }
+
+        keyframes[sprites.Length] = new ObjectReferenceKeyframe
+        {
+            time = sprites.Length / IdleAnimationFrameRate,
+            value = sprites[0]
+        };
+
+        EditorCurveBinding spriteBinding = new EditorCurveBinding
+        {
+            path = string.Empty,
+            type = typeof(SpriteRenderer),
+            propertyName = "m_Sprite"
+        };
+
+        AnimationUtility.SetObjectReferenceCurve(
+            clip,
+            spriteBinding,
+            keyframes
+        );
+
+        AnimationClipSettings clipSettings =
+            AnimationUtility.GetAnimationClipSettings(clip);
+
+        clipSettings.loopTime = true;
+        AnimationUtility.SetAnimationClipSettings(clip, clipSettings);
+        EditorUtility.SetDirty(clip);
+
+        string controllerPath =
+            $"{frameFolder}/{animationName}.controller";
+
+        AnimatorController controller =
+            AssetDatabase.LoadAssetAtPath<AnimatorController>(controllerPath);
+
+        if (controller == null)
+        {
+            controller =
+                AnimatorController.CreateAnimatorControllerAtPath(
+                    controllerPath
+                );
+        }
+
+        AnimatorStateMachine stateMachine =
+            controller.layers[0].stateMachine;
+
+        AnimatorState idleState = stateMachine.states
+            .Select(childState => childState.state)
+            .FirstOrDefault(state => state.name == animationName);
+
+        if (idleState == null)
+        {
+            idleState = stateMachine.AddState(animationName);
+        }
+
+        idleState.motion = clip;
+        stateMachine.defaultState = idleState;
+        EditorUtility.SetDirty(controller);
+
+        return controller;
+    }
+
+    private static void AddAnimator(
+        GameObject root,
+        RuntimeAnimatorController controller)
+    {
+        if (controller == null)
+        {
+            return;
+        }
+
+        Animator animator = root.AddComponent<Animator>();
+        animator.runtimeAnimatorController = controller;
+    }
+
+    private static PolygonCollider2D AddSpriteCollider(
+        GameObject root,
+        Sprite sprite)
+    {
+        PolygonCollider2D collider =
+            root.AddComponent<PolygonCollider2D>();
+
+        collider.isTrigger = true;
+
+        int shapeCount = sprite.GetPhysicsShapeCount();
+
+        if (shapeCount <= 0)
+        {
+            return collider;
+        }
+
+        collider.pathCount = shapeCount;
+        List<Vector2> points = new List<Vector2>();
+
+        for (int i = 0; i < shapeCount; i++)
+        {
+            points.Clear();
+            sprite.GetPhysicsShape(i, points);
+            collider.SetPath(i, points);
+        }
+
+        return collider;
     }
 
     private static void EnsureFolder(string path)

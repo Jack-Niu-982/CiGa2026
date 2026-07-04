@@ -5253,9 +5253,9 @@ MonoBehaviour:
   chargeDuration: 0.55
   returnDuration: 0.7
   attackDamage: 25
-  bobAmplitude: 0.18
+  bobAmplitude: 0.55
   bobFrequency: 0.7
-  horizontalDriftAmplitude: 0.06
+  horizontalDriftAmplitude: 0.12
   bobIrregularity: 0.55
   randomizeBobPhase: 1
   relativePositionFollowSpeed: 2.5
@@ -5268,17 +5268,18 @@ MonoBehaviour:
   impactHitClip: {fileID: 0}
   audioVolume: 1
   enableImpactParticles: 1
-  impactParticleCount: 36
+  impactParticleCount: 44
   impactParticleSize: 1.5
   impactParticleLifetime: 0.55
   impactParticleSpeed: 4.2
   impactParticleColor: {r: 1, g: 0.03, b: 0.015, a: 0.95}
-  impactCoreSize: 1.8
+  impactCoreSize: 2.6
   impactRingSize: 7
   impactRingLifetime: 0.48
   impactParticleSortingLayerName: Default
   impactParticleOrderInLayer: 50
   showDebugLog: 0
+  feedbackTuningVersion: 1
 --- !u!114 &1663670860
 MonoBehaviour:
   m_ObjectHideFlags: 0
