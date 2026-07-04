@@ -40,7 +40,7 @@ public static class FloatingItemPrefabBuilder
         );
 
         BuildFloatingItem(
-            CarryableItemType.Fuel,
+            FloatingItemType.Fuel,
             "FloatingFuel",
             "FuelPickup",
             new Color(0.22f, 0.9f, 0.42f, 1f),
@@ -48,7 +48,7 @@ public static class FloatingItemPrefabBuilder
         );
 
         BuildFloatingItem(
-            CarryableItemType.Trash,
+            FloatingItemType.Trash,
             "FloatingTrash",
             "TrashPickup",
             new Color(0.62f, 0.62f, 0.56f, 1f),
@@ -56,7 +56,7 @@ public static class FloatingItemPrefabBuilder
         );
 
         BuildFloatingItem(
-            CarryableItemType.Shield,
+            FloatingItemType.Shield,
             "FloatingShield",
             "ShieldPickup",
             new Color(0.28f, 0.72f, 1f, 1f),
@@ -136,7 +136,7 @@ public static class FloatingItemPrefabBuilder
     }
 
     private static void BuildFloatingItem(
-        CarryableItemType itemType,
+        FloatingItemType floatingType,
         string prefabName,
         string pickupPrefabName,
         Color tintColor,
@@ -199,7 +199,7 @@ public static class FloatingItemPrefabBuilder
             root.AddComponent<FloatingItem2D>();
 
         floatingItem.Configure(
-            itemType,
+            floatingType,
             pickupPrefab,
             new Vector2(-0.35f, 0f)
         );
