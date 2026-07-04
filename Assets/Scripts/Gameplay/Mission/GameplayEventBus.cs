@@ -10,6 +10,8 @@ public static class GameplayEventBus
     public static event Action<float> SubmarineDamageRequested;
     public static event Action<float> SubmarineRepairRequested;
     public static event Action<float> SubmarineDamaged;
+    public static event Action<CarryableItemType> SpawnRandomPickupRequested;
+    public static event Action SpawnAllPickupsRequested;
 
     [RuntimeInitializeOnLoadMethod(
         RuntimeInitializeLoadType.SubsystemRegistration
@@ -19,6 +21,8 @@ public static class GameplayEventBus
         SubmarineDamageRequested = null;
         SubmarineRepairRequested = null;
         SubmarineDamaged = null;
+        SpawnRandomPickupRequested = null;
+        SpawnAllPickupsRequested = null;
     }
 
     public static void RequestSubmarineDamage(
@@ -52,5 +56,16 @@ public static class GameplayEventBus
         }
 
         SubmarineDamaged?.Invoke(amount);
+    }
+
+    public static void RequestSpawnRandomPickup(
+        CarryableItemType itemType)
+    {
+        SpawnRandomPickupRequested?.Invoke(itemType);
+    }
+
+    public static void RequestSpawnAllPickups()
+    {
+        SpawnAllPickupsRequested?.Invoke();
     }
 }

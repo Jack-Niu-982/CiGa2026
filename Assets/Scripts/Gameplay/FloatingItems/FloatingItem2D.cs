@@ -10,12 +10,16 @@ public class FloatingItem2D : MonoBehaviour
 {
     [Header("物品")]
     [SerializeField]
-    private CarryableItemType itemType =
-        CarryableItemType.Unknown;
+    private FloatingItemType floatingItemType =
+        FloatingItemType.Unknown;
 
-    [Tooltip("抵达锚位后生成的玩家可拾取物 Prefab。")]
+    [Tooltip("抵达锚位后生成的玩家可拾取物 Prefab（仅对 Fuel/Shield/Trash 有效）。")]
     [SerializeField]
     private CarryableItem2D pickupPrefab;
+
+    [Tooltip("漂浮物效果配置（炸弹伤害、蛛网禁用时长）。")]
+    [SerializeField]
+    private FloatingItemEffectData effectData;
 
     [Header("漂移")]
     [SerializeField]
@@ -49,7 +53,7 @@ public class FloatingItem2D : MonoBehaviour
     private bool isBlinking;
     private Sequence blinkSequence;
 
-    public CarryableItemType ItemType => itemType;
+    public FloatingItemType FloatingType => floatingItemType;
     public bool CanBeCaughtByAnchor => canBeCaughtByAnchor && !isBeingPulled && !hasResolved;
 
     private void Reset()
@@ -344,33 +348,107 @@ public class FloatingItem2D : MonoBehaviour
 
         hasResolved = true;
 
-        if (pickupPrefab != null)
+        // 根据漂浮物类型执行不同的效果
+        switch (floatingItemType)
         {
-            CarryableItem2D pickup =
-                Instantiate(
-                    pickupPrefab,
-                    worldPosition,
-                    Quaternion.identity
-                );
+            case FloatingItemType.Bomb:
+                ApplyBombEffect();
+                break;
 
-            Transform pickupParent =
-                FindPickupParent();
+            case FloatingItemType.Web:
+                ApplyWebEffect();
+                break;
 
-            if (pickupParent != null)
-            {
-                pickup.transform.SetParent(
-                    pickupParent,
-                    true
-                );
-            }
-
-            pickup.name =
-                $"{pickupPrefab.name}_{itemType}_Drop";
-
-            EnablePickupPhysics(pickup);
+            case FloatingItemType.Fuel:
+            case FloatingItemType.Shield:
+            case FloatingItemType.Trash:
+                SpawnPickupItem(worldPosition);
+                break;
         }
 
         Destroy(gameObject);
+    }
+
+    private void ApplyBombEffect()
+    {
+        if (effectData == null)
+        {
+            Debug.LogWarning("FloatingItemEffectData 未配置，炸弹效果无法生效。");
+            return;
+        }
+
+        // TODO: 对船体造成伤害
+        // 需要找到船体的健康组件并应用伤害
+        Debug.Log($"炸弹爆炸！造成 {effectData.bombDamage} 点伤害");
+
+        // 发送事件通知船体受损
+        GameplayEventBus.Publish(new SubmarineHealthChangedEvent
+        {
+            DamageAmount = effectData.bombDamage,
+            Source = "Bomb"
+        });
+    }
+
+    private void ApplyWebEffect()
+    {
+        if (effectData == null)
+        {
+            Debug.LogWarning("FloatingItemEffectData 未配置，蛛网效果无法生效。");
+            return;
+        }
+
+        if (activeDropPoint == null)
+        {
+            return;
+        }
+
+        // 找到对应的锚点组件
+        AnchorLauncher2D anchor =
+            activeDropPoint.GetComponentInParent<AnchorLauncher2D>();
+
+        if (anchor != null)
+        {
+            // TODO: 在 AnchorLauncher2D 中添加 DisableForDuration 方法
+            Debug.Log($"蛛网捕获！锚点将被禁用 {effectData.webDisableDuration} 秒");
+
+            // 发送事件通知锚点被禁用
+            GameplayEventBus.Publish(new AnchorDisabledEvent
+            {
+                Anchor = anchor,
+                Duration = effectData.webDisableDuration
+            });
+        }
+    }
+
+    private void SpawnPickupItem(Vector2 worldPosition)
+    {
+        if (pickupPrefab == null)
+        {
+            return;
+        }
+
+        CarryableItem2D pickup =
+            Instantiate(
+                pickupPrefab,
+                worldPosition,
+                Quaternion.identity
+            );
+
+        Transform pickupParent =
+            FindPickupParent();
+
+        if (pickupParent != null)
+        {
+            pickup.transform.SetParent(
+                pickupParent,
+                true
+            );
+        }
+
+        pickup.name =
+            $"{pickupPrefab.name}_{floatingItemType}_Drop";
+
+        EnablePickupPhysics(pickup);
     }
 
     private void EnablePickupPhysics(CarryableItem2D pickup)
@@ -445,11 +523,11 @@ public class FloatingItem2D : MonoBehaviour
     }
 
     public void Configure(
-        CarryableItemType newItemType,
+        FloatingItemType newFloatingType,
         CarryableItem2D newPickupPrefab,
         Vector2 newDriftVelocity)
     {
-        itemType = newItemType;
+        floatingItemType = newFloatingType;
         pickupPrefab = newPickupPrefab;
         driftVelocity = newDriftVelocity;
     }

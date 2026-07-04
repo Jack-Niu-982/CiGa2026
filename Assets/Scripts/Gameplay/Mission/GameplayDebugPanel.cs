@@ -24,7 +24,7 @@ public class GameplayDebugPanel : MonoBehaviour
 
     [SerializeField]
     private Vector2 panelSize =
-        new Vector2(220f, 124f);
+        new Vector2(220f, 200f);
 
     private GUIStyle titleStyle;
 
@@ -56,6 +56,7 @@ public class GameplayDebugPanel : MonoBehaviour
         );
 
         DrawHealthTestControls();
+        DrawPickupSpawnControls();
 
         GUILayout.EndArea();
     }
