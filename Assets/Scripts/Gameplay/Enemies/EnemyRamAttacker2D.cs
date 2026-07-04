@@ -9,6 +9,8 @@ using UnityEngine;
 [RequireComponent(typeof(Renderer))]
 public class EnemyRamAttacker2D : MonoBehaviour
 {
+    private const int CurrentFeedbackTuningVersion = 1;
+
     private enum AttackPhase
     {
         Holding,
@@ -48,7 +50,7 @@ public class EnemyRamAttacker2D : MonoBehaviour
     [Header("水中浮动")]
     [Tooltip("待机和移动时上下浮动的世界距离。")]
     [Min(0f)]
-    [SerializeField] private float bobAmplitude = 0.18f;
+    [SerializeField] private float bobAmplitude = 0.55f;
 
     [Tooltip("平滑随机浮动的变化速度。")]
     [Min(0f)]
@@ -56,7 +58,7 @@ public class EnemyRamAttacker2D : MonoBehaviour
 
     [Tooltip("轻微的左右漂移幅度，让运动不只沿一条竖直线。")]
     [Min(0f)]
-    [SerializeField] private float horizontalDriftAmplitude = 0.06f;
+    [SerializeField] private float horizontalDriftAmplitude = 0.12f;
 
     [Tooltip("叠加细碎变化的强度。越高越不规则，但仍保持平滑。")]
     [Range(0f, 1f)]
@@ -64,6 +66,15 @@ public class EnemyRamAttacker2D : MonoBehaviour
 
     [Tooltip("避免多个敌人完全同步浮动。")]
     [SerializeField] private bool randomizeBobPhase = true;
+
+    [Header("相对位置跟随")]
+    [Tooltip("待机时追向潜艇相对位置的速度。数值越小，追赶过程越明显。")]
+    [Min(0.1f)]
+    [SerializeField] private float relativePositionFollowSpeed = 2.5f;
+
+    [Tooltip("待机时朝向潜艇的旋转速度。")]
+    [Min(1f)]
+    [SerializeField] private float relativeRotationFollowSpeed = 100f;
 
     [Header("音效")]
     [SerializeField] private AudioSource audioSource;
@@ -80,8 +91,44 @@ public class EnemyRamAttacker2D : MonoBehaviour
     [Range(0f, 1f)]
     [SerializeField] private float audioVolume = 1f;
 
+    [Header("撞击粒子")]
+    [SerializeField] private bool enableImpactParticles = true;
+
+    [Tooltip("撞击时向外飞散的红色粒子数量。")]
+    [Min(1)]
+    [SerializeField] private int impactParticleCount = 44;
+
+    [Tooltip("主体粒子的直径；数值较大，用来强化敌人撞船的冲击感。")]
+    [Min(0.01f)]
+    [SerializeField] private float impactParticleSize = 1f;
+
+    [Min(0.01f)]
+    [SerializeField] private float impactParticleLifetime = 0.55f;
+
+    [Min(0f)]
+    [SerializeField] private float impactParticleSpeed = 4.2f;
+
+    [SerializeField] private Color impactParticleColor =
+        new Color(1f, 0.03f, 0.015f, 0.95f);
+
+    [Tooltip("中心还会额外生成数颗大粒子，形成明显的红色爆点。")]
+    [Min(0f)]
+    [SerializeField] private float impactCoreSize = 2.6f;
+
+    [Tooltip("撞击时扩张圆环的最大直径。")]
+    [Min(0.1f)]
+    [SerializeField] private float impactRingSize = 7f;
+
+    [Tooltip("红色圆环从中心扩张并淡出的时间。")]
+    [Min(0.01f)]
+    [SerializeField] private float impactRingLifetime = 0.48f;
+
+    [SerializeField] private string impactParticleSortingLayerName = "Default";
+    [SerializeField] private int impactParticleOrderInLayer = 50;
+
     [Header("调试")]
     [SerializeField] private bool showDebugLog;
+    [SerializeField, HideInInspector] private int feedbackTuningVersion;
 
     private Rigidbody2D enemyRigidbody;
     private Collider2D enemyCollider;
@@ -93,9 +140,17 @@ public class EnemyRamAttacker2D : MonoBehaviour
     private bool damagedThisAttack;
     private bool windupPlayed;
     private float bobNoiseSeed;
+    private ParticleSystem impactParticleSystem;
+    private ParticleSystem impactRingParticleSystem;
+    private Material runtimeImpactParticleMaterial;
+    private Texture2D runtimeImpactParticleTexture;
+    private Material runtimeImpactRingMaterial;
+    private Texture2D runtimeImpactRingTexture;
 
     private void Awake()
     {
+        ApplyFeedbackTuningMigration();
+
         enemyRigidbody = GetComponent<Rigidbody2D>();
         enemyCollider = GetComponent<Collider2D>();
         enemyRenderer = GetComponent<Renderer>();
@@ -217,6 +272,362 @@ public class EnemyRamAttacker2D : MonoBehaviour
         receiver.TryApplyDamage(attackDamage);
         damagedThisAttack = true;
         PlayOneShot(impactHitClip);
+
+        Vector2 impactPoint = transform.position;
+
+        if (collision.contactCount > 0)
+        {
+            impactPoint = collision.GetContact(0).point;
+        }
+
+        PlayImpactParticles(impactPoint);
+    }
+
+    [ContextMenu("预览红色撞击粒子")]
+    private void PreviewImpactParticles()
+    {
+        PlayImpactParticles(transform.position);
+    }
+
+    private void PlayImpactParticles(Vector2 impactPoint)
+    {
+        if (!enableImpactParticles || impactParticleCount <= 0)
+        {
+            return;
+        }
+
+        EnsureImpactParticleSystem();
+
+        if (impactParticleSystem == null)
+        {
+            return;
+        }
+
+        float angleOffset = Random.Range(0f, 360f);
+
+        for (int i = 0; i < impactParticleCount; i++)
+        {
+            float angle = angleOffset + 360f * i / impactParticleCount;
+            Vector2 direction = new Vector2(
+                Mathf.Cos(angle * Mathf.Deg2Rad),
+                Mathf.Sin(angle * Mathf.Deg2Rad));
+
+            ParticleSystem.EmitParams emitParams =
+                new ParticleSystem.EmitParams
+                {
+                    position = new Vector3(
+                        impactPoint.x,
+                        impactPoint.y,
+                        transform.position.z),
+                    velocity = direction * impactParticleSpeed *
+                        Random.Range(0.65f, 1.25f),
+                    startLifetime = impactParticleLifetime *
+                        Random.Range(0.8f, 1.2f),
+                    startSize = impactParticleSize *
+                        Random.Range(0.65f, 1.35f),
+                    startColor = impactParticleColor
+                };
+
+            impactParticleSystem.Emit(emitParams, 1);
+        }
+
+        Color coreColor = impactParticleColor;
+        coreColor.a = Mathf.Min(1f, coreColor.a + 0.05f);
+
+        for (int i = 0; i < 5; i++)
+        {
+            ParticleSystem.EmitParams coreParams =
+                new ParticleSystem.EmitParams
+                {
+                    position = new Vector3(
+                        impactPoint.x,
+                        impactPoint.y,
+                        transform.position.z),
+                    velocity = Random.insideUnitCircle *
+                        impactParticleSpeed * 0.22f,
+                    startLifetime = impactParticleLifetime * 0.65f,
+                    startSize = impactCoreSize * Random.Range(0.75f, 1.15f),
+                    startColor = coreColor
+                };
+
+            impactParticleSystem.Emit(coreParams, 1);
+        }
+
+        if (impactRingParticleSystem != null)
+        {
+            ParticleSystem.EmitParams ringParams =
+                new ParticleSystem.EmitParams
+                {
+                    position = new Vector3(
+                        impactPoint.x,
+                        impactPoint.y,
+                        transform.position.z),
+                    velocity = Vector3.zero,
+                    startLifetime = impactRingLifetime,
+                    startSize = impactRingSize,
+                    startColor = impactParticleColor
+                };
+
+            impactRingParticleSystem.Emit(ringParams, 1);
+        }
+    }
+
+    private void EnsureImpactParticleSystem()
+    {
+        if (impactParticleSystem != null)
+        {
+            return;
+        }
+
+        GameObject particleObject = new GameObject("Enemy Impact Particles");
+        particleObject.transform.SetParent(transform, false);
+
+        impactParticleSystem = particleObject.AddComponent<ParticleSystem>();
+
+        ParticleSystem.MainModule main = impactParticleSystem.main;
+        main.loop = false;
+        main.playOnAwake = false;
+        main.simulationSpace = ParticleSystemSimulationSpace.World;
+        main.startSpeed = 0f;
+        main.startLifetime = impactParticleLifetime;
+        main.startSize = impactParticleSize;
+        main.maxParticles = Mathf.Max(128, impactParticleCount * 4);
+
+        ParticleSystem.EmissionModule emission = impactParticleSystem.emission;
+        emission.enabled = false;
+
+        ParticleSystem.ShapeModule shape = impactParticleSystem.shape;
+        shape.enabled = false;
+
+        ParticleSystem.ColorOverLifetimeModule colorOverLifetime =
+            impactParticleSystem.colorOverLifetime;
+        colorOverLifetime.enabled = true;
+        colorOverLifetime.color = new ParticleSystem.MinMaxGradient(
+            new Gradient
+            {
+                colorKeys = new[]
+                {
+                    new GradientColorKey(Color.white, 0f),
+                    new GradientColorKey(new Color(0.7f, 0.08f, 0.03f), 1f)
+                },
+                alphaKeys = new[]
+                {
+                    new GradientAlphaKey(1f, 0f),
+                    new GradientAlphaKey(0.85f, 0.45f),
+                    new GradientAlphaKey(0f, 1f)
+                }
+            });
+
+        ParticleSystem.SizeOverLifetimeModule sizeOverLifetime =
+            impactParticleSystem.sizeOverLifetime;
+        sizeOverLifetime.enabled = true;
+        sizeOverLifetime.size = new ParticleSystem.MinMaxCurve(
+            1f,
+            new AnimationCurve(
+                new Keyframe(0f, 0.35f),
+                new Keyframe(0.12f, 1f),
+                new Keyframe(1f, 0f)));
+
+        ParticleSystemRenderer particleRenderer =
+            particleObject.GetComponent<ParticleSystemRenderer>();
+        particleRenderer.renderMode = ParticleSystemRenderMode.Billboard;
+        particleRenderer.sharedMaterial = CreateImpactParticleMaterial();
+        particleRenderer.sortingLayerName = impactParticleSortingLayerName;
+        particleRenderer.sortingOrder = impactParticleOrderInLayer;
+
+        GameObject ringObject = new GameObject("Enemy Impact Ring");
+        ringObject.transform.SetParent(transform, false);
+
+        impactRingParticleSystem = ringObject.AddComponent<ParticleSystem>();
+
+        ParticleSystem.MainModule ringMain = impactRingParticleSystem.main;
+        ringMain.loop = false;
+        ringMain.playOnAwake = false;
+        ringMain.simulationSpace = ParticleSystemSimulationSpace.World;
+        ringMain.startSpeed = 0f;
+        ringMain.startLifetime = impactRingLifetime;
+        ringMain.startSize = impactRingSize;
+        ringMain.maxParticles = 8;
+
+        ParticleSystem.EmissionModule ringEmission =
+            impactRingParticleSystem.emission;
+        ringEmission.enabled = false;
+
+        ParticleSystem.ShapeModule ringShape = impactRingParticleSystem.shape;
+        ringShape.enabled = false;
+
+        ParticleSystem.ColorOverLifetimeModule ringColor =
+            impactRingParticleSystem.colorOverLifetime;
+        ringColor.enabled = true;
+        ringColor.color = new ParticleSystem.MinMaxGradient(
+            new Gradient
+            {
+                colorKeys = new[]
+                {
+                    new GradientColorKey(Color.white, 0f),
+                    new GradientColorKey(new Color(1f, 0.18f, 0.08f), 1f)
+                },
+                alphaKeys = new[]
+                {
+                    new GradientAlphaKey(1f, 0f),
+                    new GradientAlphaKey(0.8f, 0.55f),
+                    new GradientAlphaKey(0f, 1f)
+                }
+            });
+
+        ParticleSystem.SizeOverLifetimeModule ringSize =
+            impactRingParticleSystem.sizeOverLifetime;
+        ringSize.enabled = true;
+        ringSize.size = new ParticleSystem.MinMaxCurve(
+            1f,
+            new AnimationCurve(
+                new Keyframe(0f, 0.18f),
+                new Keyframe(0.18f, 0.72f),
+                new Keyframe(1f, 1f)));
+
+        ParticleSystemRenderer ringRenderer =
+            ringObject.GetComponent<ParticleSystemRenderer>();
+        ringRenderer.renderMode = ParticleSystemRenderMode.Billboard;
+        ringRenderer.sharedMaterial = CreateImpactRingMaterial();
+        ringRenderer.sortingLayerName = impactParticleSortingLayerName;
+        ringRenderer.sortingOrder = impactParticleOrderInLayer + 1;
+    }
+
+    private Material CreateImpactParticleMaterial()
+    {
+        if (runtimeImpactParticleMaterial != null)
+        {
+            return runtimeImpactParticleMaterial;
+        }
+
+        Shader particleShader = Shader.Find("Sprites/Default");
+
+        if (particleShader == null)
+        {
+            Debug.LogWarning(
+                $"[Enemy Ram] {name} 找不到 Sprites/Default Shader，撞击粒子可能无法显示。",
+                this);
+            return null;
+        }
+
+        const int textureSize = 32;
+        runtimeImpactParticleTexture = new Texture2D(
+            textureSize,
+            textureSize,
+            TextureFormat.RGBA32,
+            false)
+        {
+            name = "Enemy Impact Round Particle Texture",
+            filterMode = FilterMode.Bilinear,
+            wrapMode = TextureWrapMode.Clamp
+        };
+
+        Color[] pixels = new Color[textureSize * textureSize];
+        Vector2 center = Vector2.one * ((textureSize - 1) * 0.5f);
+        float radius = textureSize * 0.48f;
+
+        for (int y = 0; y < textureSize; y++)
+        {
+            for (int x = 0; x < textureSize; x++)
+            {
+                float distance = Vector2.Distance(new Vector2(x, y), center) / radius;
+                float alpha = 1f - Mathf.SmoothStep(0.68f, 1f, distance);
+                pixels[y * textureSize + x] = new Color(1f, 1f, 1f, alpha);
+            }
+        }
+
+        runtimeImpactParticleTexture.SetPixels(pixels);
+        runtimeImpactParticleTexture.Apply(false, true);
+
+        runtimeImpactParticleMaterial = new Material(particleShader)
+        {
+            name = "Enemy Impact Particle Material",
+            mainTexture = runtimeImpactParticleTexture
+        };
+
+        return runtimeImpactParticleMaterial;
+    }
+
+    private Material CreateImpactRingMaterial()
+    {
+        if (runtimeImpactRingMaterial != null)
+        {
+            return runtimeImpactRingMaterial;
+        }
+
+        Shader particleShader = Shader.Find("Sprites/Default");
+
+        if (particleShader == null)
+        {
+            return null;
+        }
+
+        const int textureSize = 64;
+        runtimeImpactRingTexture = new Texture2D(
+            textureSize,
+            textureSize,
+            TextureFormat.RGBA32,
+            false)
+        {
+            name = "Enemy Impact Ring Texture",
+            filterMode = FilterMode.Bilinear,
+            wrapMode = TextureWrapMode.Clamp
+        };
+
+        Color[] pixels = new Color[textureSize * textureSize];
+        Vector2 center = Vector2.one * ((textureSize - 1) * 0.5f);
+        float radius = textureSize * 0.43f;
+        float ringWidth = textureSize * 0.085f;
+
+        for (int y = 0; y < textureSize; y++)
+        {
+            for (int x = 0; x < textureSize; x++)
+            {
+                float distance = Vector2.Distance(new Vector2(x, y), center);
+                float distanceFromRing = Mathf.Abs(distance - radius);
+                float alpha = 1f - Mathf.SmoothStep(
+                    ringWidth * 0.35f,
+                    ringWidth,
+                    distanceFromRing);
+                pixels[y * textureSize + x] = new Color(1f, 1f, 1f, alpha);
+            }
+        }
+
+        runtimeImpactRingTexture.SetPixels(pixels);
+        runtimeImpactRingTexture.Apply(false, true);
+
+        runtimeImpactRingMaterial = new Material(particleShader)
+        {
+            name = "Enemy Impact Ring Material",
+            mainTexture = runtimeImpactRingTexture
+        };
+
+        return runtimeImpactRingMaterial;
+    }
+
+    private void OnDestroy()
+    {
+        DestroyRuntimeObject(runtimeImpactParticleMaterial);
+        DestroyRuntimeObject(runtimeImpactParticleTexture);
+        DestroyRuntimeObject(runtimeImpactRingMaterial);
+        DestroyRuntimeObject(runtimeImpactRingTexture);
+    }
+
+    private void DestroyRuntimeObject(Object runtimeObject)
+    {
+        if (runtimeObject == null)
+        {
+            return;
+        }
+
+        if (Application.isPlaying)
+        {
+            Destroy(runtimeObject);
+        }
+        else
+        {
+            DestroyImmediate(runtimeObject);
+        }
     }
 
     private void ResolveReferences()
@@ -288,10 +699,30 @@ public class EnemyRamAttacker2D : MonoBehaviour
 
         targetPosition += GetCurrentBobOffset();
 
-        enemyRigidbody.MovePosition(targetPosition);
+        Vector2 nextPosition = targetPosition;
 
-        float angle = Mathf.Atan2(-direction.x, direction.y) * Mathf.Rad2Deg;
-        enemyRigidbody.MoveRotation(angle);
+        if (phase == AttackPhase.Holding)
+        {
+            nextPosition = Vector2.MoveTowards(
+                enemyRigidbody.position,
+                targetPosition,
+                relativePositionFollowSpeed * Time.fixedDeltaTime);
+        }
+
+        enemyRigidbody.MovePosition(nextPosition);
+
+        float targetAngle = Mathf.Atan2(-direction.x, direction.y) * Mathf.Rad2Deg;
+        float nextAngle = targetAngle;
+
+        if (phase == AttackPhase.Holding)
+        {
+            nextAngle = Mathf.MoveTowardsAngle(
+                enemyRigidbody.rotation,
+                targetAngle,
+                relativeRotationFollowSpeed * Time.fixedDeltaTime);
+        }
+
+        enemyRigidbody.MoveRotation(nextAngle);
     }
 
     private Vector2 GetCurrentBobOffset()
@@ -415,8 +846,29 @@ public class EnemyRamAttacker2D : MonoBehaviour
             value.x * sin + value.y * cos);
     }
 
+    private void ApplyFeedbackTuningMigration()
+    {
+        if (feedbackTuningVersion >= CurrentFeedbackTuningVersion)
+        {
+            return;
+        }
+
+        bobAmplitude = Mathf.Max(bobAmplitude, 0.55f);
+        horizontalDriftAmplitude = Mathf.Max(horizontalDriftAmplitude, 0.12f);
+        relativePositionFollowSpeed = 2.5f;
+        relativeRotationFollowSpeed = 100f;
+        impactParticleCount = Mathf.Max(impactParticleCount, 44);
+        impactParticleSize = Mathf.Max(impactParticleSize, 1f);
+        impactCoreSize = Mathf.Max(impactCoreSize, 2.6f);
+        impactRingSize = Mathf.Max(impactRingSize, 7f);
+        impactRingLifetime = Mathf.Max(impactRingLifetime, 0.48f);
+        feedbackTuningVersion = CurrentFeedbackTuningVersion;
+    }
+
     private void OnValidate()
     {
+        ApplyFeedbackTuningMigration();
+
         holdDistance = Mathf.Max(0.1f, holdDistance);
         retreatDistance = Mathf.Max(0f, retreatDistance);
         attackInterval = Mathf.Max(0.1f, attackInterval);
@@ -428,7 +880,16 @@ public class EnemyRamAttacker2D : MonoBehaviour
         bobFrequency = Mathf.Max(0f, bobFrequency);
         horizontalDriftAmplitude = Mathf.Max(0f, horizontalDriftAmplitude);
         bobIrregularity = Mathf.Clamp01(bobIrregularity);
+        relativePositionFollowSpeed = Mathf.Max(0.1f, relativePositionFollowSpeed);
+        relativeRotationFollowSpeed = Mathf.Max(1f, relativeRotationFollowSpeed);
         windupLeadTime = Mathf.Max(0f, windupLeadTime);
         audioVolume = Mathf.Clamp01(audioVolume);
+        impactParticleCount = Mathf.Max(1, impactParticleCount);
+        impactParticleSize = Mathf.Max(0.01f, impactParticleSize);
+        impactParticleLifetime = Mathf.Max(0.01f, impactParticleLifetime);
+        impactParticleSpeed = Mathf.Max(0f, impactParticleSpeed);
+        impactCoreSize = Mathf.Max(0f, impactCoreSize);
+        impactRingSize = Mathf.Max(0.1f, impactRingSize);
+        impactRingLifetime = Mathf.Max(0.01f, impactRingLifetime);
     }
 }
