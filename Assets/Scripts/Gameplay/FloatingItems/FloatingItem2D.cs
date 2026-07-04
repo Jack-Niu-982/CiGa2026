@@ -13,10 +13,6 @@ public class FloatingItem2D : MonoBehaviour
     private FloatingItemType floatingItemType =
         FloatingItemType.Unknown;
 
-    [Tooltip("抵达锚位后生成的玩家可拾取物 Prefab（统一 Prefab，根据类型动态配置）。")]
-    [SerializeField]
-    private CarryableItem2D carryableItemPrefab;
-
     [Tooltip("漂浮物效果配置（炸弹伤害、蛛网禁用时长）。")]
     [SerializeField]
     private FloatingItemEffectData effectData;
@@ -396,10 +392,13 @@ public class FloatingItem2D : MonoBehaviour
 
     private void SpawnPickupItem(Vector2 worldPosition)
     {
-        if (carryableItemPrefab == null)
+        // 从 SettingManager 获取统一的拾取物 Prefab
+        CarryableItem2D pickupPrefab = SettingManager.CarryableItemArt?.GetPickupPrefab();
+
+        if (pickupPrefab == null)
         {
             Debug.LogWarning(
-                $"[FloatingItem2D] {name} 没有配置拾取物 Prefab。",
+                $"[FloatingItem2D] {name} 无法从 SettingManager 获取拾取物 Prefab。",
                 this
             );
             return;
@@ -407,7 +406,7 @@ public class FloatingItem2D : MonoBehaviour
 
         CarryableItem2D pickup =
             Instantiate(
-                carryableItemPrefab,
+                pickupPrefab,
                 worldPosition,
                 Quaternion.identity
             );

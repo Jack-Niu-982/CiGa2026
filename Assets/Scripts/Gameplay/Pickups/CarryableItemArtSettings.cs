@@ -23,8 +23,22 @@ public class CarryableItemArtSettings : ScriptableObject
         public Sprite iconSprite;
     }
 
+    [Header("统一 Prefab")]
+    [Tooltip("所有拾取物使用的统一 Prefab，根据类型动态配置。")]
+    [SerializeField]
+    private CarryableItem2D pickupPrefab;
+
+    [Header("美术配置")]
     [SerializeField]
     private ItemArtConfig[] configs;
+
+    /// <summary>
+    /// 获取统一的拾取物 Prefab。
+    /// </summary>
+    public CarryableItem2D GetPickupPrefab()
+    {
+        return pickupPrefab;
+    }
 
     /// <summary>
     /// 根据类型获取美术配置。

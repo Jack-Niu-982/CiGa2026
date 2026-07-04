@@ -7,11 +7,6 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class PickupSpawner : MonoBehaviour
 {
-    [Header("拾取物 Prefab")]
-    [Tooltip("统一的拾取物 Prefab，根据类型动态配置。")]
-    [SerializeField]
-    private CarryableItem2D pickupPrefab;
-
     [Header("生成区域")]
     [Tooltip("生成物品的父级 Transform（可选，留空则生成在根级）。")]
     [SerializeField]
@@ -68,10 +63,13 @@ public class PickupSpawner : MonoBehaviour
 
     public void SpawnPickup(CarryableItemType itemType)
     {
+        // 从 SettingManager 获取统一的拾取物 Prefab
+        CarryableItem2D pickupPrefab = SettingManager.CarryableItemArt?.GetPickupPrefab();
+
         if (pickupPrefab == null)
         {
             Debug.LogWarning(
-                "[PickupSpawner] 没有配置拾取物 Prefab。"
+                "[PickupSpawner] 无法从 SettingManager 获取拾取物 Prefab。"
             );
             return;
         }
