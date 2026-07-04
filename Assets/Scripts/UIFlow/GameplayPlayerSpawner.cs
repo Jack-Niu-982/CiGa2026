@@ -27,6 +27,7 @@ public class GameplayPlayerSpawner : MonoBehaviour
     public void SpawnFromCurrentSession()
     {
         ClearSpawnedPlayers();
+        GameplayPlayerRegistry.Clear();
 
         if (playerPrefab == null)
         {
@@ -123,7 +124,19 @@ public class GameplayPlayerSpawner : MonoBehaviour
         player.SetActive(true);
         spawnedPlayers.Add(player);
 
+        GameplayPlayerIdentity identity =
+            player.GetComponent<GameplayPlayerIdentity>();
+
+        if (identity == null)
+        {
+            identity =
+                player.AddComponent<GameplayPlayerIdentity>();
+        }
+
+        identity.Configure(assignment.SlotIndex);
+
         ConfigurePlayerInput(player, assignment);
+        GameplayPlayerRegistry.Register(identity);
 
         return player;
     }
@@ -215,5 +228,6 @@ public class GameplayPlayerSpawner : MonoBehaviour
         }
 
         spawnedPlayers.Clear();
+        GameplayPlayerRegistry.Clear();
     }
 }

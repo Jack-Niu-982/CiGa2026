@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -43,6 +44,9 @@ public class PlayerCarryInteractor2D : MonoBehaviour
 
     public CarryableItem2D HeldItem => heldItem;
     public bool HasHeldItem => heldItem != null;
+
+    public event Action<PlayerCarryInteractor2D, CarryableItem2D>
+        HeldItemChanged;
 
     public CarryableItemType HeldItemType =>
         heldItem != null
@@ -102,13 +106,11 @@ public class PlayerCarryInteractor2D : MonoBehaviour
             return;
         }
 
-        if (heldItem != null)
+        if (!TryPickupClosestItem() &&
+            heldItem != null)
         {
             TryDropHeldItem();
-            return;
         }
-
-        TryPickupClosestItem();
     }
 
     public bool CanPickup(
@@ -116,7 +118,7 @@ public class PlayerCarryInteractor2D : MonoBehaviour
     {
         return
             item != null &&
-            heldItem == null &&
+            heldItem != item &&
             !item.IsHeld;
     }
 
@@ -132,6 +134,12 @@ public class PlayerCarryInteractor2D : MonoBehaviour
         CarryableItem2D item)
     {
         if (!CanPickup(item))
+        {
+            return false;
+        }
+
+        if (heldItem != null &&
+            !TryDropHeldItem())
         {
             return false;
         }
@@ -185,6 +193,7 @@ public class PlayerCarryInteractor2D : MonoBehaviour
 
         heldItem = item;
         nearbyItems.Remove(item);
+        HeldItemChanged?.Invoke(this, heldItem);
     }
 
     internal void NotifyHeldItemDropped(
@@ -193,6 +202,7 @@ public class PlayerCarryInteractor2D : MonoBehaviour
         if (heldItem == item)
         {
             heldItem = null;
+            HeldItemChanged?.Invoke(this, null);
         }
     }
 

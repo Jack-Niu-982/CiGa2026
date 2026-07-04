@@ -65,6 +65,24 @@ public class SubmarineHealth2D : MonoBehaviour, ICarryItemReceiver
         }
     }
 
+    private void OnEnable()
+    {
+        GameplayEventBus.SubmarineDamageRequested +=
+            HandleSubmarineDamageRequested;
+
+        GameplayEventBus.SubmarineRepairRequested +=
+            HandleSubmarineRepairRequested;
+    }
+
+    private void OnDisable()
+    {
+        GameplayEventBus.SubmarineDamageRequested -=
+            HandleSubmarineDamageRequested;
+
+        GameplayEventBus.SubmarineRepairRequested -=
+            HandleSubmarineRepairRequested;
+    }
+
     private void OnValidate()
     {
         maxHealth = Mathf.Max(1f, maxHealth);
@@ -86,9 +104,30 @@ public class SubmarineHealth2D : MonoBehaviour, ICarryItemReceiver
             return false;
         }
 
-        return SetHealth(
+        float previousHealth =
+            currentHealth;
+
+        bool changed =
+            SetHealth(
             currentHealth - amount
         );
+
+        if (!changed)
+        {
+            return false;
+        }
+
+        float actualDamage =
+            Mathf.Max(
+                0f,
+                previousHealth - currentHealth
+            );
+
+        GameplayEventBus.PublishSubmarineDamaged(
+            actualDamage
+        );
+
+        return true;
     }
 
     public bool Repair(float amount)
@@ -109,6 +148,18 @@ public class SubmarineHealth2D : MonoBehaviour, ICarryItemReceiver
     {
         depleted = false;
         SetHealth(initialHealth);
+    }
+
+    private void HandleSubmarineDamageRequested(
+        float amount)
+    {
+        Damage(amount);
+    }
+
+    private void HandleSubmarineRepairRequested(
+        float amount)
+    {
+        Repair(amount);
     }
 
     public bool CanReceiveCarryItem(

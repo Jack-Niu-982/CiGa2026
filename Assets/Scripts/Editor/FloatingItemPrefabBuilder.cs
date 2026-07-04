@@ -8,6 +8,8 @@ public static class FloatingItemPrefabBuilder
     private const string PrefabFolder = "Assets/Prefabs/Gameplay/Pickups";
     private const string FloatingPrefabFolder = "Assets/Prefabs/Gameplay/FloatingItems";
     private const string SpriteFolder = PrefabFolder + "/GeneratedSprites";
+    private const float PickupRootScale = 0.1f;
+    private const int PickupSortingOrder = 30;
 
     [MenuItem(MenuPath)]
     public static void Build()
@@ -78,7 +80,12 @@ public static class FloatingItemPrefabBuilder
 
         root.transform.position = Vector3.zero;
         root.transform.rotation = Quaternion.identity;
-        root.transform.localScale = Vector3.one;
+        root.transform.localScale =
+            new Vector3(
+                PickupRootScale,
+                PickupRootScale,
+                1f
+            );
 
         SpriteRenderer spriteRenderer =
             root.AddComponent<SpriteRenderer>();
@@ -86,7 +93,7 @@ public static class FloatingItemPrefabBuilder
         spriteRenderer.sprite =
             CreatePlaceholderSprite(prefabName, placeholderColor);
         spriteRenderer.color = Color.white;
-        spriteRenderer.sortingOrder = 0;
+        spriteRenderer.sortingOrder = PickupSortingOrder;
 
         BoxCollider2D collider =
             root.AddComponent<BoxCollider2D>();
@@ -109,6 +116,17 @@ public static class FloatingItemPrefabBuilder
             collider,
             rigidbody
         );
+
+        SerializedObject serializedCarryable =
+            new SerializedObject(carryable);
+
+        serializedCarryable.FindProperty("displayName")
+            .stringValue = GetDisplayName(itemType);
+
+        serializedCarryable.FindProperty("iconSprite")
+            .objectReferenceValue = spriteRenderer.sprite;
+
+        serializedCarryable.ApplyModifiedPropertiesWithoutUndo();
 
         string prefabPath =
             $"{PrefabFolder}/{prefabName}.prefab";
@@ -193,6 +211,25 @@ public static class FloatingItemPrefabBuilder
 
         PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
         UnityEngine.Object.DestroyImmediate(root);
+    }
+
+    private static string GetDisplayName(
+        CarryableItemType itemType)
+    {
+        switch (itemType)
+        {
+            case CarryableItemType.Fuel:
+                return "Fuel";
+
+            case CarryableItemType.Shield:
+                return "Shield";
+
+            case CarryableItemType.Trash:
+                return "Trash";
+
+            default:
+                return string.Empty;
+        }
     }
 
     private static Sprite CreatePlaceholderSprite(

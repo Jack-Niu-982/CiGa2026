@@ -12,6 +12,12 @@ public class CarryableItem2D : MonoBehaviour
     private CarryableItemType itemType =
         CarryableItemType.Unknown;
 
+    [SerializeField]
+    private string displayName;
+
+    [SerializeField]
+    private Sprite iconSprite;
+
     [Header("触发器")]
     [Tooltip("用于检测玩家靠近的 2D 触发器。留空时会自动使用本物体上的 Collider2D。")]
     [SerializeField]
@@ -35,6 +41,11 @@ public class CarryableItem2D : MonoBehaviour
     private PlayerCarryInteractor2D currentHolder;
 
     public CarryableItemType ItemType => itemType;
+    public string DisplayName =>
+        string.IsNullOrWhiteSpace(displayName)
+            ? GetDefaultDisplayName(itemType)
+            : displayName;
+    public Sprite IconSprite => iconSprite;
     public bool IsHeld => isHeld;
     public PlayerCarryInteractor2D CurrentHolder => currentHolder;
 
@@ -70,6 +81,7 @@ public class CarryableItem2D : MonoBehaviour
     private void Awake()
     {
         CacheComponents();
+        EnsureIconSprite();
     }
 
     private void OnValidate()
@@ -85,6 +97,8 @@ public class CarryableItem2D : MonoBehaviour
             itemRigidbody =
                 GetComponent<Rigidbody2D>();
         }
+
+        EnsureIconSprite();
     }
 
     public bool TryPickup(
@@ -246,6 +260,42 @@ public class CarryableItem2D : MonoBehaviour
 
             cachedColliders[i].enabled =
                 shouldEnable;
+        }
+    }
+
+    private static string GetDefaultDisplayName(
+        CarryableItemType type)
+    {
+        switch (type)
+        {
+            case CarryableItemType.Fuel:
+                return "Fuel";
+
+            case CarryableItemType.Shield:
+                return "Shield";
+
+            case CarryableItemType.Trash:
+                return "Trash";
+
+            default:
+                return string.Empty;
+        }
+    }
+
+    private void EnsureIconSprite()
+    {
+        if (iconSprite != null)
+        {
+            return;
+        }
+
+        SpriteRenderer spriteRenderer =
+            GetComponentInChildren<SpriteRenderer>(true);
+
+        if (spriteRenderer != null)
+        {
+            iconSprite =
+                spriteRenderer.sprite;
         }
     }
 }

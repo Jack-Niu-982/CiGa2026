@@ -14,6 +14,7 @@
 - [Technical/PickupAndFloatingItems.md](Technical/PickupAndFloatingItems.md)：拾取物与漂浮物 Prefab 生成方案
 - [Technical/FloatingItems.md](Technical/FloatingItems.md)：船外漂浮物生成、锚拉回和拾取物掉落闭环
 - [Technical/MissionHealthAndSettlement.md](Technical/MissionHealthAndSettlement.md)：终点、血量与胜负结算系统方案
+- [Technical/PhysicsLayerAndCollisionRules.md](Technical/PhysicsLayerAndCollisionRules.md)：Gameplay 物理层、碰撞矩阵和船舱内部阻挡约定
 - [Technical/ParallelAgentWorkflow.md](Technical/ParallelAgentWorkflow.md)：多 Agent 并行开发流程和验收规范
 - [Technical/PluginAndPackageBaseline.md](Technical/PluginAndPackageBaseline.md)：Unity 插件、包版本和关键前置条件记录
 

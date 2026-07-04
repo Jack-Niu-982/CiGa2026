@@ -79,6 +79,7 @@ GameObject:
   - component: {fileID: 4881310542966185538}
   - component: {fileID: 1625250482858157904}
   - component: {fileID: 1461436106843939148}
+  - component: {fileID: 8482537657852817508}
   m_Layer: 3
   m_Name: Player
   m_TagString: Player
@@ -143,9 +144,9 @@ SpriteRenderer:
   m_LightmapParameters: {fileID: 0}
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 10
+  m_SortingOrder: 14
   m_Sprite: {fileID: -9095717837082945937, guid: 207ee8102dd4143d288186ef0be518ee, type: 3}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: 0.69194925, g: 1, b: 0.15723264, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -360,3 +361,17 @@ MonoBehaviour:
   holdParent: {fileID: 7134839496912126229}
   holdLocalOffset: {x: 0.35, y: 0.15}
   dropLocalOffset: {x: 0.55, y: 0}
+--- !u!114 &8482537657852817508
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8172673515402726401}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4bd319a7a0a99774692c88f045d17957, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  playerIndex: 0
+  portraitSprite: {fileID: 0}

@@ -8,6 +8,9 @@ public class GameplayHudView : MonoBehaviour
     [Header("Buttons")]
     [SerializeField] private Button pauseButton;
 
+    [Header("Player Status")]
+    [SerializeField] private GameplayPlayerStatusBarView playerStatusBar;
+
     public event Action PauseClicked;
 
     private void OnEnable()
@@ -29,6 +32,14 @@ public class GameplayHudView : MonoBehaviour
     public void Show(bool visible)
     {
         gameObject.SetActive(visible);
+    }
+
+    public void RefreshPlayerStatus()
+    {
+        if (playerStatusBar != null)
+        {
+            playerStatusBar.Refresh();
+        }
     }
 
     private void HandlePauseClicked()
