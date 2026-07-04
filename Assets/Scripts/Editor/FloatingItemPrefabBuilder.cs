@@ -6,12 +6,14 @@ public static class FloatingItemPrefabBuilder
 {
     private const string MenuPath = "CiGa2026/Build Floating Item Prefabs";
     private const string PrefabFolder = "Assets/Prefabs/Gameplay/Pickups";
+    private const string FloatingPrefabFolder = "Assets/Prefabs/Gameplay/FloatingItems";
     private const string SpriteFolder = PrefabFolder + "/GeneratedSprites";
 
     [MenuItem(MenuPath)]
     public static void Build()
     {
         EnsureFolder(PrefabFolder);
+        EnsureFolder(FloatingPrefabFolder);
         EnsureFolder(SpriteFolder);
 
         BuildItem(
@@ -33,6 +35,30 @@ public static class FloatingItemPrefabBuilder
             "ShieldPickup",
             new Color(0.28f, 0.72f, 1f, 1f),
             new Vector2(0.72f, 0.72f)
+        );
+
+        BuildFloatingItem(
+            CarryableItemType.Fuel,
+            "FloatingFuel",
+            "FuelPickup",
+            new Color(0.22f, 0.9f, 0.42f, 1f),
+            new Vector2(0.9f, 0.9f)
+        );
+
+        BuildFloatingItem(
+            CarryableItemType.Trash,
+            "FloatingTrash",
+            "TrashPickup",
+            new Color(0.62f, 0.62f, 0.56f, 1f),
+            new Vector2(0.95f, 0.7f)
+        );
+
+        BuildFloatingItem(
+            CarryableItemType.Shield,
+            "FloatingShield",
+            "ShieldPickup",
+            new Color(0.28f, 0.72f, 1f, 1f),
+            new Vector2(0.9f, 0.9f)
         );
 
         AssetDatabase.SaveAssets();
@@ -86,6 +112,84 @@ public static class FloatingItemPrefabBuilder
 
         string prefabPath =
             $"{PrefabFolder}/{prefabName}.prefab";
+
+        PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
+        UnityEngine.Object.DestroyImmediate(root);
+    }
+
+    private static void BuildFloatingItem(
+        CarryableItemType itemType,
+        string prefabName,
+        string pickupPrefabName,
+        Color tintColor,
+        Vector2 colliderSize)
+    {
+        CarryableItem2D pickupPrefab =
+            AssetDatabase.LoadAssetAtPath<CarryableItem2D>(
+                $"{PrefabFolder}/{pickupPrefabName}.prefab"
+            );
+
+        if (pickupPrefab == null)
+        {
+            Debug.LogError(
+                $"[FloatingItemPrefabBuilder] Missing pickup prefab: {pickupPrefabName}"
+            );
+
+            return;
+        }
+
+        GameObject root =
+            new GameObject(prefabName);
+
+        int floatingLayer =
+            LayerMask.NameToLayer("FloatingItem");
+
+        if (floatingLayer >= 0)
+        {
+            root.layer = floatingLayer;
+        }
+
+        SpriteRenderer spriteRenderer =
+            root.AddComponent<SpriteRenderer>();
+
+        SpriteRenderer pickupRenderer =
+            pickupPrefab.GetComponent<SpriteRenderer>();
+
+        if (pickupRenderer != null)
+        {
+            spriteRenderer.sprite =
+                pickupRenderer.sprite;
+        }
+
+        spriteRenderer.color = tintColor;
+        spriteRenderer.sortingOrder = 1;
+
+        BoxCollider2D collider =
+            root.AddComponent<BoxCollider2D>();
+
+        collider.isTrigger = true;
+        collider.size = colliderSize;
+
+        Rigidbody2D rigidbody =
+            root.AddComponent<Rigidbody2D>();
+
+        rigidbody.bodyType = RigidbodyType2D.Kinematic;
+        rigidbody.gravityScale = 0f;
+        rigidbody.simulated = true;
+
+        FloatingItem2D floatingItem =
+            root.AddComponent<FloatingItem2D>();
+
+        floatingItem.Configure(
+            itemType,
+            pickupPrefab,
+            new Vector2(-0.35f, 0f)
+        );
+
+        root.AddComponent<FloatingItemAnchorTarget2D>();
+
+        string prefabPath =
+            $"{FloatingPrefabFolder}/{prefabName}.prefab";
 
         PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
         UnityEngine.Object.DestroyImmediate(root);

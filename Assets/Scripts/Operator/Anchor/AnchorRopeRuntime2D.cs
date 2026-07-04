@@ -46,6 +46,7 @@ public class AnchorRopeRuntime2D : MonoBehaviour
     private Vector2 flightTargetPoint;
     private Vector2 currentAnchorPosition;
     private Vector2 launchDirection;
+    private AnchorItemDropPoint2D cachedItemDropPoint;
 
     private float wallPullDelayTimer;
     private bool initialized;
@@ -674,12 +675,17 @@ public class AnchorRopeRuntime2D : MonoBehaviour
             anchorPoint
         );
 
-        /*
-         * 命中墙壁后只短暂停留。
-         *
-         * 不再进入永久 Attached 状态，
-         * 也不会在等待期间持续给潜艇拉力。
-         */
+        FloatingItemAnchorTarget2D floatingTarget =
+            hit.collider.GetComponentInParent
+                <FloatingItemAnchorTarget2D>();
+
+        if (floatingTarget != null &&
+            TryCatchFloatingItem(floatingTarget))
+        {
+            BeginAutomaticRetract();
+            return;
+        }
+
         currentState =
             AnchorState.WaitingWallPull;
 
@@ -692,18 +698,85 @@ public class AnchorRopeRuntime2D : MonoBehaviour
                 $"[Anchor Launcher] {gameObject.name} 命中墙壁。\n" +
                 $"命中物体：{hit.collider.gameObject.name}\n" +
                 $"命中点：{hit.point}\n" +
-                $"将在 {settings.WallHitPullDelay:F2} 秒后拉拽潜艇并自动回收。"
+                $"将在 {settings.WallHitPullDelay:F2} 秒后拉拽飞船并自动回收。"
             );
         }
 
-        /*
-         * 设置为 0 时立即拉拽并回收。
-         */
         if (wallPullDelayTimer <= 0f)
         {
             ExecuteWallPullAndAutomaticRetract();
         }
     }
+
+    private bool TryCatchFloatingItem(
+        FloatingItemAnchorTarget2D floatingTarget)
+    {
+        if (floatingTarget == null ||
+            !floatingTarget.CanBeCaught)
+        {
+            return false;
+        }
+
+        AnchorItemDropPoint2D dropPoint =
+            GetItemDropPoint();
+
+        if (dropPoint == null)
+        {
+            if (settings != null &&
+                settings.ShowDebugLog)
+            {
+                Debug.LogWarning(
+                    $"[Anchor Launcher] {gameObject.name} 命中漂浮物，" +
+                    "但没有找到 AnchorItemDropPoint2D，无法生成掉落物。"
+                );
+            }
+
+            return false;
+        }
+
+        bool caught =
+            floatingTarget.TryCatch(dropPoint);
+
+        if (caught &&
+            settings != null &&
+            settings.ShowDebugLog)
+        {
+            Debug.Log(
+                $"[Anchor Launcher] {gameObject.name} 命中漂浮物，" +
+                "开始把它拉回对应锚位。"
+            );
+        }
+
+        return caught;
+    }
+
+    private AnchorItemDropPoint2D GetItemDropPoint()
+    {
+        if (cachedItemDropPoint != null)
+        {
+            return cachedItemDropPoint;
+        }
+
+        cachedItemDropPoint =
+            GetComponent<AnchorItemDropPoint2D>();
+
+        if (cachedItemDropPoint == null)
+        {
+            cachedItemDropPoint =
+                GetComponentInChildren<AnchorItemDropPoint2D>(
+                    true
+                );
+        }
+
+        if (cachedItemDropPoint == null)
+        {
+            cachedItemDropPoint =
+                GetComponentInParent<AnchorItemDropPoint2D>();
+        }
+
+        return cachedItemDropPoint;
+    }
+
 
     private void CompleteAnchorFlight()
     {
