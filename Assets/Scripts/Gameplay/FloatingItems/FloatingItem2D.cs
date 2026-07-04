@@ -544,11 +544,9 @@ public class FloatingItem2D : MonoBehaviour
 
     public void Configure(
         FloatingItemType newFloatingType,
-        CarryableItem2D newCarryableItemPrefab,
         Vector2 newDriftVelocity)
-  {
+    {
         floatingItemType = newFloatingType;
-        carryableItemPrefab = newCarryableItemPrefab;
         driftVelocity = newDriftVelocity;
     }
 
