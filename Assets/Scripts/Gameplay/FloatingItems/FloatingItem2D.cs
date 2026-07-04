@@ -191,11 +191,50 @@ public class FloatingItem2D : MonoBehaviour
                     Quaternion.identity
                 );
 
+            Transform pickupParent =
+                FindPickupParent();
+
+            if (pickupParent != null)
+            {
+                pickup.transform.SetParent(
+                    pickupParent,
+                    true
+                );
+            }
+
             pickup.name =
                 $"{pickupPrefab.name}_{itemType}_Drop";
         }
 
         Destroy(gameObject);
+    }
+
+    private Transform FindPickupParent()
+    {
+        if (activeDropPoint == null)
+        {
+            return null;
+        }
+
+        SubmarineInteriorFollower2D interior =
+            activeDropPoint.GetComponentInParent
+                <SubmarineInteriorFollower2D>();
+
+        if (interior != null)
+        {
+            return interior.transform;
+        }
+
+        Rigidbody2D parentRigidbody =
+            activeDropPoint.GetComponentInParent
+                <Rigidbody2D>();
+
+        if (parentRigidbody != null)
+        {
+            return parentRigidbody.transform;
+        }
+
+        return activeDropPoint.transform;
     }
 
     private void ResolveWithoutPickup()

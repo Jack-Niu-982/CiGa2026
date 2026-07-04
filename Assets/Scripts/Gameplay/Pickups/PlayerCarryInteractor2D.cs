@@ -23,13 +23,17 @@ public class PlayerCarryInteractor2D : MonoBehaviour
     private PlayerOperateInteractor2D operateInteractor;
 
     [Header("手持位置")]
-    [Tooltip("物品被拿起后挂到这里。留空时挂到玩家自身。")]
+    [Tooltip("旧版手持挂点。当前真实物品不会挂到玩家身上，只保留给放下位置和兼容逻辑。")]
     [SerializeField]
     private Transform holdParent;
 
     [SerializeField]
     private Vector2 holdLocalOffset =
         new Vector2(0.35f, 0.15f);
+
+    [Tooltip("玩家头顶显示当前携带物品图标的 SpriteRenderer。通常是玩家 Prefab 下的 PickupSprite。")]
+    [SerializeField]
+    private SpriteRenderer pickupSpriteRenderer;
 
     [Header("放下位置")]
     [SerializeField]
@@ -71,6 +75,9 @@ public class PlayerCarryInteractor2D : MonoBehaviour
 
         operateInteractor =
             GetComponent<PlayerOperateInteractor2D>();
+
+        pickupSpriteRenderer =
+            FindPickupSpriteRenderer();
     }
 
     private void Awake()
@@ -92,6 +99,14 @@ public class PlayerCarryInteractor2D : MonoBehaviour
             operateInteractor =
                 GetComponent<PlayerOperateInteractor2D>();
         }
+
+        if (pickupSpriteRenderer == null)
+        {
+            pickupSpriteRenderer =
+                FindPickupSpriteRenderer();
+        }
+
+        RefreshPickupSprite();
     }
 
     private void Update()
@@ -193,6 +208,7 @@ public class PlayerCarryInteractor2D : MonoBehaviour
 
         heldItem = item;
         nearbyItems.Remove(item);
+        RefreshPickupSprite();
         HeldItemChanged?.Invoke(this, heldItem);
     }
 
@@ -202,6 +218,7 @@ public class PlayerCarryInteractor2D : MonoBehaviour
         if (heldItem == item)
         {
             heldItem = null;
+            RefreshPickupSprite();
             HeldItemChanged?.Invoke(this, null);
         }
     }
@@ -376,5 +393,55 @@ public class PlayerCarryInteractor2D : MonoBehaviour
         }
 
         nearbyItems.Clear();
+        ClearPickupSprite();
+    }
+
+    private SpriteRenderer FindPickupSpriteRenderer()
+    {
+        Transform pickupSpriteTransform =
+            transform.Find("PickupSprite");
+
+        if (pickupSpriteTransform == null)
+        {
+            return null;
+        }
+
+        return pickupSpriteTransform
+            .GetComponent<SpriteRenderer>();
+    }
+
+    private void RefreshPickupSprite()
+    {
+        if (pickupSpriteRenderer == null)
+        {
+            return;
+        }
+
+        if (heldItem == null ||
+            heldItem.IconSprite == null)
+        {
+            ClearPickupSprite();
+            return;
+        }
+
+        pickupSpriteRenderer.sprite =
+            heldItem.IconSprite;
+
+        pickupSpriteRenderer.enabled =
+            true;
+    }
+
+    private void ClearPickupSprite()
+    {
+        if (pickupSpriteRenderer == null)
+        {
+            return;
+        }
+
+        pickupSpriteRenderer.sprite =
+            null;
+
+        pickupSpriteRenderer.enabled =
+            false;
     }
 }

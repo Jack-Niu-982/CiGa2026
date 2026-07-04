@@ -34,6 +34,8 @@ public class CarryableItem2D : MonoBehaviour
 
     private Collider2D[] cachedColliders;
     private bool[] cachedColliderEnabledStates;
+    private SpriteRenderer[] cachedSpriteRenderers;
+    private bool[] cachedSpriteRendererEnabledStates;
     private bool cachedRigidbodySimulated;
     private Transform parentBeforePickup;
 
@@ -135,17 +137,7 @@ public class CarryableItem2D : MonoBehaviour
         }
 
         ApplyHeldColliderState();
-
-        transform.SetParent(
-            holder.HoldParent,
-            false
-        );
-
-        transform.localPosition =
-            holder.HoldLocalOffset;
-
-        transform.localRotation =
-            Quaternion.identity;
+        ApplyHeldVisualState();
 
         holder.NotifyItemPickedUp(this);
 
@@ -175,6 +167,7 @@ public class CarryableItem2D : MonoBehaviour
             Quaternion.identity;
 
         RestorePhysicsState();
+        RestoreVisualState();
 
         currentHolder = null;
         isHeld = false;
@@ -214,6 +207,21 @@ public class CarryableItem2D : MonoBehaviour
                 cachedColliders[i] != null &&
                 cachedColliders[i].enabled;
         }
+
+        cachedSpriteRenderers =
+            GetComponentsInChildren<SpriteRenderer>(
+                true
+            );
+
+        cachedSpriteRendererEnabledStates =
+            new bool[cachedSpriteRenderers.Length];
+
+        for (int i = 0; i < cachedSpriteRenderers.Length; i++)
+        {
+            cachedSpriteRendererEnabledStates[i] =
+                cachedSpriteRenderers[i] != null &&
+                cachedSpriteRenderers[i].enabled;
+        }
     }
 
     private void ApplyHeldColliderState()
@@ -239,6 +247,23 @@ public class CarryableItem2D : MonoBehaviour
         }
     }
 
+    private void ApplyHeldVisualState()
+    {
+        if (cachedSpriteRenderers == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < cachedSpriteRenderers.Length; i++)
+        {
+            if (cachedSpriteRenderers[i] != null)
+            {
+                cachedSpriteRenderers[i].enabled =
+                    false;
+            }
+        }
+    }
+
     private void RestorePhysicsState()
     {
         if (itemRigidbody != null)
@@ -259,6 +284,29 @@ public class CarryableItem2D : MonoBehaviour
                 cachedColliderEnabledStates[i];
 
             cachedColliders[i].enabled =
+                shouldEnable;
+        }
+    }
+
+    private void RestoreVisualState()
+    {
+        if (cachedSpriteRenderers == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < cachedSpriteRenderers.Length; i++)
+        {
+            if (cachedSpriteRenderers[i] == null)
+            {
+                continue;
+            }
+
+            bool shouldEnable =
+                i < cachedSpriteRendererEnabledStates.Length &&
+                cachedSpriteRendererEnabledStates[i];
+
+            cachedSpriteRenderers[i].enabled =
                 shouldEnable;
         }
     }
