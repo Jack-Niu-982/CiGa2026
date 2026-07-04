@@ -545,11 +545,11 @@ public class FloatingItem2D : MonoBehaviour
 
     public void Configure(
         FloatingItemType newFloatingType,
-        CarryableItem2D newPickupPrefab,
+        CarryableItem2D newCarryableItemPrefab,
         Vector2 newDriftVelocity)
-    {
+  {
         floatingItemType = newFloatingType;
-        pickupPrefab = newPickupPrefab;
+        carryableItemPrefab = newCarryableItemPrefab;
         driftVelocity = newDriftVelocity;
     }
 
