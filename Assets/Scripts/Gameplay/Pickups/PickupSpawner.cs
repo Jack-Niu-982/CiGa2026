@@ -22,7 +22,7 @@ public class PickupSpawner : MonoBehaviour
     [SerializeField]
     private Transform spawnParent;
 
-    [Tooltip("生成区域的世界坐标中心。")]
+    [Tooltip("生成区域的本地坐标中心（相对于 PickupSpawner 自身位置）。")]
     [SerializeField]
     private Vector3 spawnCenter = Vector3.zero;
 
@@ -121,7 +121,8 @@ public class PickupSpawner : MonoBehaviour
             maxSpawnHeight
         ) + dropHeightOffset;
 
-        return spawnCenter + new Vector3(x, y, 0f);
+        Vector3 localPosition = spawnCenter + new Vector3(x, y, 0f);
+        return transform.TransformPoint(localPosition);
     }
 
     private CarryableItem2D GetPrefabForType(CarryableItemType itemType)
@@ -149,17 +150,23 @@ public class PickupSpawner : MonoBehaviour
             return;
         }
 
+        // 将本地坐标转换为世界坐标
+        Vector3 worldCenter = transform.TransformPoint(spawnCenter);
+
         Gizmos.color = new Color(0f, 1f, 0f, 0.3f);
+        Gizmos.matrix = transform.localToWorldMatrix;
         Gizmos.DrawCube(spawnCenter, spawnSize);
+        Gizmos.matrix = Matrix4x4.identity;
 
         Gizmos.color = Color.yellow;
-        Vector3 minHeightPos = spawnCenter + new Vector3(-spawnSize.x * 0.5f, minSpawnHeight, 0f);
-        Vector3 maxHeightPosLeft = spawnCenter + new Vector3(-spawnSize.x * 0.5f, maxSpawnHeight, 0f);
-        Vector3 maxHeightPosRight = spawnCenter + new Vector3(spawnSize.x * 0.5f, maxSpawnHeight, 0f);
-
-        Gizmos.DrawLine(minHeightPos, minHeightPos + new Vector3(spawnSize.x, 0f, 0f));
+        Vector3 minHeightPosLocal = spawnCenter + new Vector3(-spawnSize.x * 0.5f, minSpawnHeight, 0f);
+        Vector3 minHeightPos = transform.TransformPoint(minHeightPosLocal);
+        Vector3 minHeightPosRight = transform.TransformPoint(spawnCenter + new Vector3(spawnSize.x * 0.5f, minSpawnHeight, 0f));
+        Gizmos.DrawLine(minHeightPos, minHeightPosRight);
 
         Gizmos.color = Color.red;
+        Vector3 maxHeightPosLeft = transform.TransformPoint(spawnCenter + new Vector3(-spawnSize.x * 0.5f, maxSpawnHeight, 0f));
+        Vector3 maxHeightPosRight = transform.TransformPoint(spawnCenter + new Vector3(spawnSize.x * 0.5f, maxSpawnHeight, 0f));
         Gizmos.DrawLine(maxHeightPosLeft, maxHeightPosRight);
     }
 }
