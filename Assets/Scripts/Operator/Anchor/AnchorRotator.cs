@@ -35,6 +35,10 @@ public class AnchorRotator : MonoBehaviour
     [SerializeField]
     private OperateController operateController;
 
+    [Tooltip("锚点转向音效。留空时自动读取当前物体上的组件。")]
+    [SerializeField]
+    private AnchorAudioFeedback2D audioFeedback;
+
     [Header("旋转设置")]
 
     [Tooltip("玩家按住方向键时，每秒旋转的角度。")]
@@ -187,6 +191,12 @@ public class AnchorRotator : MonoBehaviour
         {
             operateController =
                 GetComponentInParent<OperateController>();
+        }
+
+        if (audioFeedback == null)
+        {
+            audioFeedback =
+                GetComponent<AnchorAudioFeedback2D>();
         }
     }
 
@@ -381,6 +391,11 @@ public class AnchorRotator : MonoBehaviour
             );
 
         ApplyCurrentRotation();
+
+        if (audioFeedback != null)
+        {
+            audioFeedback.PlayRotate();
+        }
     }
 
     /// <summary>
