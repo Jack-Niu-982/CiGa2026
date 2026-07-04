@@ -26,22 +26,32 @@ public static class UIFlowDemoBuilder
 
         GameObject mainMenuPanel = CreateMainMenuPanel();
         GameObject roomPanel = CreateRoomPanel();
+        GameObject gameplayHudPanel = CreateGameplayHudPanel();
         GameObject pausePanel = CreatePausePanel();
+        GameObject confirmDialogPanel = CreateConfirmDialogPanel();
 
         string mainMenuPanelPath =
             $"{PrefabFolder}/MainMenuPanel.prefab";
         string roomPanelPath =
             $"{PrefabFolder}/RoomPanel.prefab";
+        string gameplayHudPanelPath =
+            $"{PrefabFolder}/GameplayHudPanel.prefab";
         string pausePanelPath =
             $"{PrefabFolder}/PausePanel.prefab";
+        string confirmDialogPanelPath =
+            $"{PrefabFolder}/ConfirmDialogPanel.prefab";
 
         PrefabUtility.SaveAsPrefabAsset(mainMenuPanel, mainMenuPanelPath);
         PrefabUtility.SaveAsPrefabAsset(roomPanel, roomPanelPath);
+        PrefabUtility.SaveAsPrefabAsset(gameplayHudPanel, gameplayHudPanelPath);
         PrefabUtility.SaveAsPrefabAsset(pausePanel, pausePanelPath);
+        PrefabUtility.SaveAsPrefabAsset(confirmDialogPanel, confirmDialogPanelPath);
 
         Object.DestroyImmediate(mainMenuPanel);
         Object.DestroyImmediate(roomPanel);
+        Object.DestroyImmediate(gameplayHudPanel);
         Object.DestroyImmediate(pausePanel);
+        Object.DestroyImmediate(confirmDialogPanel);
 
         CreateGameplayPlayerPrefab();
 
@@ -50,7 +60,12 @@ public static class UIFlowDemoBuilder
             roomPanelPath
         );
 
-        CreateGameplayScene(pausePanelPath, PlayerPrefabPath);
+        CreateGameplayScene(
+            gameplayHudPanelPath,
+            pausePanelPath,
+            confirmDialogPanelPath,
+            PlayerPrefabPath
+        );
 
         UpdateBuildSettings();
 
@@ -216,6 +231,153 @@ public static class UIFlowDemoBuilder
             .objectReferenceValue = restartButton;
         serializedView.FindProperty("backToMainMenuButton")
             .objectReferenceValue = backButton;
+
+        serializedView.ApplyModifiedPropertiesWithoutUndo();
+
+        return panel;
+    }
+
+    private static GameObject CreateGameplayHudPanel()
+    {
+        GameObject panel =
+            CreateUIObject("GameplayHudPanel", null);
+
+        RectTransform rect =
+            panel.GetComponent<RectTransform>();
+
+        rect.anchorMin = Vector2.zero;
+        rect.anchorMax = Vector2.one;
+        rect.offsetMin = Vector2.zero;
+        rect.offsetMax = Vector2.zero;
+
+        Button pauseButton =
+            CreateButton(panel.transform, "PauseButton", "Pause");
+
+        RectTransform pauseRect =
+            pauseButton.GetComponent<RectTransform>();
+
+        pauseRect.anchorMin = new Vector2(1f, 1f);
+        pauseRect.anchorMax = new Vector2(1f, 1f);
+        pauseRect.pivot = new Vector2(1f, 1f);
+        pauseRect.anchoredPosition = new Vector2(-32f, -32f);
+        pauseRect.sizeDelta = new Vector2(128f, 56f);
+
+        GameplayHudView view =
+            panel.AddComponent<GameplayHudView>();
+
+        SerializedObject serializedView =
+            new SerializedObject(view);
+
+        serializedView.FindProperty("pauseButton")
+            .objectReferenceValue = pauseButton;
+
+        serializedView.ApplyModifiedPropertiesWithoutUndo();
+
+        return panel;
+    }
+
+    private static GameObject CreateConfirmDialogPanel()
+    {
+        GameObject panel =
+            CreatePanelRoot("ConfirmDialogPanel");
+
+        Image overlay =
+            panel.GetComponent<Image>();
+
+        overlay.color =
+            new Color(0f, 0f, 0f, 0.62f);
+
+        GameObject frame =
+            CreateUIObject("DialogFrame", panel.transform);
+
+        Image frameImage =
+            frame.AddComponent<Image>();
+
+        frameImage.color =
+            new Color(0.09f, 0.10f, 0.13f, 0.98f);
+
+        RectTransform frameRect =
+            frame.GetComponent<RectTransform>();
+
+        frameRect.anchorMin = new Vector2(0.5f, 0.5f);
+        frameRect.anchorMax = new Vector2(0.5f, 0.5f);
+        frameRect.pivot = new Vector2(0.5f, 0.5f);
+        frameRect.anchoredPosition = Vector2.zero;
+        frameRect.sizeDelta = new Vector2(640f, 320f);
+
+        VerticalLayoutGroup layout =
+            frame.AddComponent<VerticalLayoutGroup>();
+
+        layout.padding = new RectOffset(48, 48, 36, 36);
+        layout.spacing = 22f;
+        layout.childAlignment = TextAnchor.MiddleCenter;
+        layout.childControlWidth = true;
+        layout.childControlHeight = true;
+        layout.childForceExpandWidth = true;
+        layout.childForceExpandHeight = false;
+
+        TMP_Text title =
+            CreateText(
+                frame.transform,
+                "Title",
+                "Return to Main Menu?",
+                36
+            );
+
+        title.gameObject.AddComponent<LayoutElement>()
+            .preferredHeight = 56f;
+
+        TMP_Text message =
+            CreateText(
+                frame.transform,
+                "Message",
+                "Current gameplay progress will be discarded.",
+                24
+            );
+
+        message.gameObject.AddComponent<LayoutElement>()
+            .preferredHeight = 82f;
+
+        GameObject buttonRow =
+            CreateUIObject("ButtonRow", frame.transform);
+
+        HorizontalLayoutGroup buttonLayout =
+            buttonRow.AddComponent<HorizontalLayoutGroup>();
+
+        buttonLayout.spacing = 24f;
+        buttonLayout.childAlignment = TextAnchor.MiddleCenter;
+        buttonLayout.childControlWidth = true;
+        buttonLayout.childControlHeight = true;
+        buttonLayout.childForceExpandWidth = true;
+        buttonLayout.childForceExpandHeight = true;
+
+        buttonRow.AddComponent<LayoutElement>()
+            .preferredHeight = 72f;
+
+        Button cancelButton =
+            CreateButton(buttonRow.transform, "CancelButton", "Cancel");
+
+        Button confirmButton =
+            CreateButton(buttonRow.transform, "ConfirmButton", "Confirm");
+
+        confirmButton
+            .GetComponent<Image>()
+            .color = new Color(0.58f, 0.16f, 0.18f, 1f);
+
+        ConfirmDialogView view =
+            panel.AddComponent<ConfirmDialogView>();
+
+        SerializedObject serializedView =
+            new SerializedObject(view);
+
+        serializedView.FindProperty("titleLabel")
+            .objectReferenceValue = title;
+        serializedView.FindProperty("messageLabel")
+            .objectReferenceValue = message;
+        serializedView.FindProperty("confirmButton")
+            .objectReferenceValue = confirmButton;
+        serializedView.FindProperty("cancelButton")
+            .objectReferenceValue = cancelButton;
 
         serializedView.ApplyModifiedPropertiesWithoutUndo();
 
@@ -489,7 +651,9 @@ public static class UIFlowDemoBuilder
     }
 
     private static void CreateGameplayScene(
+        string gameplayHudPanelPath,
         string pausePanelPath,
+        string confirmDialogPanelPath,
         string playerPrefabPath)
     {
         Scene scene =
@@ -547,6 +711,12 @@ public static class UIFlowDemoBuilder
         scaler.referenceResolution = new Vector2(1920f, 1080f);
         scaler.matchWidthOrHeight = 0.5f;
 
+        GameplayHudView gameplayHud =
+            InstantiatePanel<GameplayHudView>(
+                gameplayHudPanelPath,
+                canvasObject.transform
+            );
+
         PausePanelView pausePanel =
             InstantiatePanel<PausePanelView>(
                 pausePanelPath,
@@ -554,6 +724,14 @@ public static class UIFlowDemoBuilder
             );
 
         pausePanel.gameObject.SetActive(false);
+
+        ConfirmDialogView confirmDialog =
+            InstantiatePanel<ConfirmDialogView>(
+                confirmDialogPanelPath,
+                canvasObject.transform
+            );
+
+        confirmDialog.gameObject.SetActive(false);
 
         if (Object.FindObjectOfType<EventSystem>() == null)
         {
@@ -567,8 +745,14 @@ public static class UIFlowDemoBuilder
         SerializedObject serializedFlow =
             new SerializedObject(flow);
 
+        serializedFlow.FindProperty("gameplayHud")
+            .objectReferenceValue = gameplayHud;
+
         serializedFlow.FindProperty("pausePanel")
             .objectReferenceValue = pausePanel;
+
+        serializedFlow.FindProperty("backToMainMenuConfirmDialog")
+            .objectReferenceValue = confirmDialog;
 
         serializedFlow.ApplyModifiedPropertiesWithoutUndo();
 

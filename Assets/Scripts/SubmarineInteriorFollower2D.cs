@@ -1,15 +1,13 @@
 using UnityEngine;
 
 /// <summary>
-/// 让潜艇内部的Kinematic碰撞体跟随潜艇本体。
-///
-/// 玩家只与该内部碰撞体发生碰撞，
-/// 因此玩家的重力不会直接压在潜艇Dynamic Rigidbody2D上。
+/// 让船舱内部的 Kinematic 碰撞体跟随飞船本体。
+/// 玩家只和这个内部碰撞代理发生接触，玩家重力不会直接压到飞船的 Dynamic Rigidbody2D 上。
 /// </summary>
 [RequireComponent(typeof(Rigidbody2D))]
 public class SubmarineInteriorFollower2D : MonoBehaviour
 {
-    [Header("潜艇本体")]
+    [Header("飞船本体")]
     [SerializeField]
     private Rigidbody2D submarineRigidbody;
 
@@ -17,7 +15,7 @@ public class SubmarineInteriorFollower2D : MonoBehaviour
     [SerializeField]
     private bool followRotation = true;
 
-    [Tooltip("自动记录内部碰撞体与潜艇之间的初始偏移。")]
+    [Tooltip("自动记录内部碰撞代理与飞船之间的初始偏移。")]
     [SerializeField]
     private bool keepInitialOffset = true;
 
@@ -35,6 +33,8 @@ public class SubmarineInteriorFollower2D : MonoBehaviour
             RigidbodyType2D.Kinematic;
 
         interiorRigidbody.gravityScale = 0f;
+        interiorRigidbody.simulated = true;
+        interiorRigidbody.freezeRotation = true;
     }
 
     private void Start()
@@ -42,7 +42,7 @@ public class SubmarineInteriorFollower2D : MonoBehaviour
         if (submarineRigidbody == null)
         {
             Debug.LogError(
-                $"{name} 没有设置潜艇Rigidbody2D。",
+                $"{name} 没有设置飞船 Rigidbody2D。",
                 this
             );
 
@@ -101,8 +101,7 @@ public class SubmarineInteriorFollower2D : MonoBehaviour
     }
 
     /// <summary>
-    /// 获取潜艇在指定世界坐标点上的速度。
-    /// 会同时计算平移速度和旋转切向速度。
+    /// 获取飞船在指定世界坐标点上的速度，包含平移速度和旋转切向速度。
     /// </summary>
     public Vector2 GetVelocityAtPoint(
         Vector2 worldPoint)

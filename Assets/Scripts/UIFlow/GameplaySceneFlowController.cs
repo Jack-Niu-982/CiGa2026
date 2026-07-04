@@ -11,7 +11,9 @@ public class GameplaySceneFlowController : MonoBehaviour
     [SerializeField] private string gameplaySceneName = "Jaeger";
 
     [Header("Panel Prefab Instance")]
+    [SerializeField] private GameplayHudView gameplayHud;
     [SerializeField] private PausePanelView pausePanel;
+    [SerializeField] private ConfirmDialogView backToMainMenuConfirmDialog;
 
     [Header("Input")]
     [SerializeField] private bool allowAnyGamepadToPause = true;
@@ -20,22 +22,46 @@ public class GameplaySceneFlowController : MonoBehaviour
 
     private void OnEnable()
     {
+        if (gameplayHud != null)
+        {
+            gameplayHud.PauseClicked += Pause;
+            gameplayHud.Show(true);
+        }
+
         if (pausePanel != null)
         {
             pausePanel.ResumeClicked += Resume;
             pausePanel.RestartClicked += Restart;
-            pausePanel.BackToMainMenuClicked += BackToMainMenu;
+            pausePanel.BackToMainMenuClicked += RequestBackToMainMenu;
             pausePanel.Show(false);
+        }
+
+        if (backToMainMenuConfirmDialog != null)
+        {
+            backToMainMenuConfirmDialog.Confirmed += BackToMainMenu;
+            backToMainMenuConfirmDialog.Cancelled += HideBackToMainMenuConfirmDialog;
+            backToMainMenuConfirmDialog.Hide();
         }
     }
 
     private void OnDisable()
     {
+        if (gameplayHud != null)
+        {
+            gameplayHud.PauseClicked -= Pause;
+        }
+
         if (pausePanel != null)
         {
             pausePanel.ResumeClicked -= Resume;
             pausePanel.RestartClicked -= Restart;
-            pausePanel.BackToMainMenuClicked -= BackToMainMenu;
+            pausePanel.BackToMainMenuClicked -= RequestBackToMainMenu;
+        }
+
+        if (backToMainMenuConfirmDialog != null)
+        {
+            backToMainMenuConfirmDialog.Confirmed -= BackToMainMenu;
+            backToMainMenuConfirmDialog.Cancelled -= HideBackToMainMenuConfirmDialog;
         }
     }
 
@@ -85,6 +111,11 @@ public class GameplaySceneFlowController : MonoBehaviour
         {
             pausePanel.Show(true);
         }
+
+        if (gameplayHud != null)
+        {
+            gameplayHud.Show(false);
+        }
     }
 
     public void Resume()
@@ -96,6 +127,16 @@ public class GameplaySceneFlowController : MonoBehaviour
         {
             pausePanel.Show(false);
         }
+
+        if (backToMainMenuConfirmDialog != null)
+        {
+            backToMainMenuConfirmDialog.Hide();
+        }
+
+        if (gameplayHud != null)
+        {
+            gameplayHud.Show(true);
+        }
     }
 
     public void Restart()
@@ -104,10 +145,32 @@ public class GameplaySceneFlowController : MonoBehaviour
         SceneManager.LoadScene(gameplaySceneName);
     }
 
+    public void RequestBackToMainMenu()
+    {
+        if (backToMainMenuConfirmDialog == null)
+        {
+            BackToMainMenu();
+            return;
+        }
+
+        backToMainMenuConfirmDialog.Show(
+            "Return to Main Menu?",
+            "Current gameplay progress will be discarded."
+        );
+    }
+
     public void BackToMainMenu()
     {
         Time.timeScale = 1f;
         SceneManager.LoadScene(mainMenuSceneName);
+    }
+
+    private void HideBackToMainMenuConfirmDialog()
+    {
+        if (backToMainMenuConfirmDialog != null)
+        {
+            backToMainMenuConfirmDialog.Hide();
+        }
     }
 
     private void OnDestroy()
@@ -115,4 +178,3 @@ public class GameplaySceneFlowController : MonoBehaviour
         Time.timeScale = 1f;
     }
 }
-
