@@ -160,6 +160,20 @@ public class AnchorLaunchDetector2D : MonoBehaviour
                 continue;
             }
 
+            /*
+             * ProjectSettings 中开启了 Queries Start In Colliders。
+             * 当发射起点因为潜艇贴墙而落在墙体内部时，
+             * Physics2D 会返回 distance == 0 的命中；这个命中点通常
+             * 就是射线起点，视觉上会像“钩中了空气”。
+             *
+             * 船锚只接受飞行路径前方真正穿过的表面，
+             * 因此忽略起点内部产生的零距离命中。
+             */
+            if (hits[i].distance <= 0.0001f)
+            {
+                continue;
+            }
+
             if (hits[i].distance < nearestDistance)
             {
                 nearestDistance =
