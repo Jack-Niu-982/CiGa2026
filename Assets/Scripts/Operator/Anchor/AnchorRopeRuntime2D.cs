@@ -778,6 +778,26 @@ public class AnchorRopeRuntime2D : MonoBehaviour
             settings.WallPullImpulse;
 
         /*
+         * 每一次钩拉都应该产生完整、可预期的拉拽效果。
+         *
+         * 如果潜艇仍带着上一次钩拉的速度，反方向的同等冲量
+         * 只会把旧速度抵消，结果就是贴在墙边几乎不动。
+         * 这里只清除拉拽轴上的旧速度，保留切线方向速度，
+         * 然后再施加本次冲量；反方向船锚便能立即把潜艇拉离墙面。
+         */
+        float previousVelocityAlongPull =
+            Vector2.Dot(
+                bodyRigidbody.velocity,
+                pullDirection
+            );
+
+        bodyRigidbody.velocity -=
+            pullDirection *
+            previousVelocityAlongPull;
+
+        bodyRigidbody.WakeUp();
+
+        /*
          * 一次性冲量。
          *
          * 这里不是持续 Force，
@@ -832,12 +852,33 @@ public class AnchorRopeRuntime2D : MonoBehaviour
             return;
         }
 
-        if (!TryGetLaunchDirection(
-                out Vector2 direction
-            ))
+        /*
+         * 回收必须使用本次发射时已经验证过的方向。
+         *
+         * 旧逻辑会在回收的每一帧重新从场景 Transform 计算方向；
+         * 一旦场景引用或初始偏移临时无效，这里就会一直 return，
+         * 船锚永久卡在 Retracting，看起来像到达最远距离却不收回。
+         */
+        Vector2 retractDirection =
+            launchDirection;
+
+        if (retractDirection.sqrMagnitude <=
+            0.0001f)
         {
-            return;
+            if (!TryGetLaunchDirection(
+                    out retractDirection
+                ))
+            {
+                /*
+                 * 即使配置异常，也不要让状态机永久卡死。
+                 * 直接结束回收并把锚恢复到待机父节点。
+                 */
+                FinishAnchorRetract();
+                return;
+            }
         }
+
+        retractDirection.Normalize();
 
         /*
          * 回收目标位置始终根据发射器当前方向实时计算。
@@ -847,7 +888,7 @@ public class AnchorRopeRuntime2D : MonoBehaviour
          */
         Vector2 targetPosition =
             GetAnchorRestWorldPosition(
-                direction
+                retractDirection
             );
 
         Vector2 newPosition =
