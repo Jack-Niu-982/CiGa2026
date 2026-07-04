@@ -1090,11 +1090,8 @@ MonoBehaviour:
   anchorOffset: 0.5
   anchorShootSpeed: 25
   anchorRetractSpeed: 18
-  passivePullAcceleration: 0.5
-  passiveMaxPullSpeed: 1
-  reelPullAcceleration: 12
-  maxReelSpeed: 8
-  stopPullDistance: 0.15
+  wallHitPullDelay: 0.5
+  wallPullImpulse: 6
   inverseWidthByLength: 1
   ropeWidthAtReferenceLength: 0.07
   widthReferenceLength: 5
@@ -2715,11 +2712,8 @@ MonoBehaviour:
   anchorOffset: 0.5
   anchorShootSpeed: 25
   anchorRetractSpeed: 18
-  passivePullAcceleration: 0.5
-  passiveMaxPullSpeed: 1
-  reelPullAcceleration: 12
-  maxReelSpeed: 8
-  stopPullDistance: 0.15
+  wallHitPullDelay: 0.5
+  wallPullImpulse: 6
   inverseWidthByLength: 1
   ropeWidthAtReferenceLength: 0.07
   widthReferenceLength: 5
@@ -4383,11 +4377,8 @@ MonoBehaviour:
   anchorOffset: 0.5
   anchorShootSpeed: 25
   anchorRetractSpeed: 18
-  passivePullAcceleration: 0.5
-  passiveMaxPullSpeed: 1
-  reelPullAcceleration: 12
-  maxReelSpeed: 8
-  stopPullDistance: 0.15
+  wallHitPullDelay: 0.5
+  wallPullImpulse: 6
   inverseWidthByLength: 1
   ropeWidthAtReferenceLength: 0.07
   widthReferenceLength: 5
@@ -4899,11 +4890,8 @@ MonoBehaviour:
   anchorOffset: 0.5
   anchorShootSpeed: 25
   anchorRetractSpeed: 18
-  passivePullAcceleration: 0.5
-  passiveMaxPullSpeed: 1
-  reelPullAcceleration: 12
-  maxReelSpeed: 8
-  stopPullDistance: 0.15
+  wallHitPullDelay: 0.5
+  wallPullImpulse: 6
   inverseWidthByLength: 1
   ropeWidthAtReferenceLength: 0.07
   widthReferenceLength: 5

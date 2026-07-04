@@ -2,17 +2,14 @@ using UnityEngine;
 using UnityEngine.Rendering;
 
 /// <summary>
-/// 船锚的常驻运行组件。
+/// 船锚常驻运行组件。
 ///
-/// 无论玩家是否正在操作发射器，这个脚本都会持续负责：
-///
+/// 无论玩家是否正在操作发射器，本脚本都会继续负责：
 /// 1. 船锚飞行；
-/// 2. 船锚自动收回；
-/// 3. 绳子始终连接发射器和船锚；
-/// 4. 船锚发射后的实时自然拉力；
-/// 5. 玩家操作时的额外主动拉力。
-///
-/// OperateController 不要禁用这个组件。
+/// 2. 命中墙壁后等待指定时间；
+/// 3. 给潜艇一次朝锚点方向的中心冲量；
+/// 4. 自动收回船锚；
+/// 5. 绳子始终连接发射器中心和船锚中心。
 /// </summary>
 [DefaultExecutionOrder(100)]
 [DisallowMultipleComponent]
@@ -24,15 +21,13 @@ public class AnchorRopeRuntime2D : MonoBehaviour
     {
         Idle,
         Flying,
-        Attached,
+        WaitingWallPull,
         Retracting
     }
 
     private AnchorLauncher2D settings;
 
-    private Transform bodyTransform;
     private Rigidbody2D bodyRigidbody;
-
     private LineRenderer lineRenderer;
     private AnchorLaunchDetector2D detector;
     private Transform anchorTransform;
@@ -52,7 +47,7 @@ public class AnchorRopeRuntime2D : MonoBehaviour
     private Vector2 currentAnchorPosition;
     private Vector2 launchDirection;
 
-    private bool reelKeyHeld;
+    private float wallPullDelayTimer;
     private bool initialized;
 
     private Material runtimeLineMaterial;
@@ -60,18 +55,16 @@ public class AnchorRopeRuntime2D : MonoBehaviour
     public bool IsAnchorActive =>
         currentState != AnchorState.Idle;
 
+    /// <summary>
+    /// 兼容旧接口。
+    /// 现在表示船锚命中墙壁后正在等待一次性拉拽。
+    /// </summary>
     public bool IsAnchorAttached =>
-        currentState == AnchorState.Attached;
+        currentState == AnchorState.WaitingWallPull;
 
     public bool IsAnchorRetracting =>
         currentState == AnchorState.Retracting;
 
-    /// <summary>
-    /// 船锚当前的实时世界坐标。
-    ///
-    /// 船锚发射后直接读取船锚 Transform，
-    /// 不再只返回命中时保存的位置。
-    /// </summary>
     public Vector2 AnchorPoint =>
         anchorTransform != null &&
         currentState != AnchorState.Idle
@@ -113,41 +106,27 @@ public class AnchorRopeRuntime2D : MonoBehaviour
 
     private void FixedUpdate()
     {
-        if (
-            !initialized ||
-            currentState == AnchorState.Idle
-        )
+        if (!initialized ||
+            currentState != AnchorState.WaitingWallPull)
         {
             return;
         }
 
-        /*
-         * 船锚一旦发射，
-         * 每个物理帧都重新读取：
-         *
-         * 1. 发射器中心位置；
-         * 2. 船锚中心位置；
-         * 3. 两点之间的实时方向；
-         * 4. 两点之间的实时距离。
-         *
-         * 因此潜艇移动或旋转后，
-         * 拉力方向会立即跟着改变。
-         */
-        ApplyRealtimeRopePull();
+        wallPullDelayTimer -=
+            Time.fixedDeltaTime;
+
+        if (wallPullDelayTimer <= 0f)
+        {
+            ExecuteWallPullAndAutomaticRetract();
+        }
     }
 
     private void LateUpdate()
     {
-        if (!initialized)
+        if (initialized)
         {
-            return;
+            UpdateRopeVisual();
         }
-
-        /*
-         * 在所有普通 Update 完成后刷新绳子，
-         * 保证绳子始终严格连接发射器中心和船锚中心。
-         */
-        UpdateRopeVisual();
     }
 
     private void OnDestroy()
@@ -173,8 +152,7 @@ public class AnchorRopeRuntime2D : MonoBehaviour
     /// 绑定保存参数的 AnchorLauncher2D。
     /// </summary>
     public void Bind(
-        AnchorLauncher2D launcherSettings
-    )
+        AnchorLauncher2D launcherSettings)
     {
         if (launcherSettings == null)
         {
@@ -187,7 +165,8 @@ public class AnchorRopeRuntime2D : MonoBehaviour
             return;
         }
 
-        settings = launcherSettings;
+        settings =
+            launcherSettings;
 
         if (!initialized)
         {
@@ -206,10 +185,8 @@ public class AnchorRopeRuntime2D : MonoBehaviour
     /// </summary>
     public void RefreshVisualConfiguration()
     {
-        if (
-            settings == null ||
-            lineRenderer == null
-        )
+        if (settings == null ||
+            lineRenderer == null)
         {
             return;
         }
@@ -226,19 +203,15 @@ public class AnchorRopeRuntime2D : MonoBehaviour
     /// </summary>
     public bool TryShootAnchor()
     {
-        if (
-            !initialized ||
-            currentState != AnchorState.Idle
-        )
+        if (!initialized ||
+            currentState != AnchorState.Idle)
         {
             return false;
         }
 
-        if (
-            !TryGetLaunchDirection(
+        if (!TryGetLaunchDirection(
                 out Vector2 requestedDirection
-            )
-        )
+            ))
         {
             return false;
         }
@@ -264,25 +237,23 @@ public class AnchorRopeRuntime2D : MonoBehaviour
             return false;
         }
 
-        AnchorLaunchDetector2D.LaunchResult result;
-
-        bool gotLaunchResult =
+        bool gotResult =
             detector.TryGetLaunchResult(
                 launcherPosition,
                 anchorRestPosition,
                 requestedDirection,
                 settings.MaxRopeLength,
-                out result
+                out AnchorLaunchDetector2D.LaunchResult result
             );
 
-        if (!gotLaunchResult)
+        if (!gotResult)
         {
             if (settings.ShowDebugLog)
             {
                 Debug.LogWarning(
                     $"[Anchor Launcher] " +
                     $"{gameObject.name} 无法发射：" +
-                    $"{result.FailureReason}"
+                    result.FailureReason
                 );
             }
 
@@ -298,11 +269,11 @@ public class AnchorRopeRuntime2D : MonoBehaviour
         flightTargetPoint =
             result.FlightTargetPoint;
 
+        wallPullDelayTimer = 0f;
+
         /*
-         * 发射时解除船锚与发射器的父子关系。
-         *
-         * 这样潜艇移动后，
-         * 世界空间中的船锚不会跟着潜艇移动。
+         * 解除船锚和发射器的父子关系。
+         * 避免船锚飞出去后继续跟随潜艇移动。
          */
         anchorTransform.SetParent(
             null,
@@ -332,19 +303,15 @@ public class AnchorRopeRuntime2D : MonoBehaviour
 
         /*
          * 发射速度为 0 时，
-         * 直接瞬间检测整条发射路径。
+         * 直接瞬间检测整条路径。
          */
         if (settings.AnchorShootSpeed <= 0f)
         {
-            RaycastHit2D instantHit;
-
-            if (
-                detector.TryDetectFlightHit(
+            if (detector.TryDetectFlightHit(
                     currentAnchorPosition,
                     flightTargetPoint,
-                    out instantHit
-                )
-            )
+                    out RaycastHit2D instantHit
+                ))
             {
                 HandleFlightHit(
                     instantHit
@@ -370,23 +337,24 @@ public class AnchorRopeRuntime2D : MonoBehaviour
     }
 
     /// <summary>
-    /// 松开固定点并开始收回船锚。
+    /// 随时取消并开始回收。
+    ///
+    /// 如果正处于命中后的等待阶段，
+    /// 手动回收会取消那次拉拽。
     /// </summary>
     public void StartRetractingAnchor()
     {
-        if (
-            !initialized ||
+        if (!initialized ||
             currentState == AnchorState.Idle ||
-            currentState == AnchorState.Retracting
-        )
+            currentState == AnchorState.Retracting)
         {
             return;
         }
 
+        wallPullDelayTimer = 0f;
+
         currentState =
             AnchorState.Retracting;
-
-        reelKeyHeld = false;
 
         if (lineRenderer != null)
         {
@@ -395,15 +363,12 @@ public class AnchorRopeRuntime2D : MonoBehaviour
     }
 
     /// <summary>
-    /// 设置玩家是否正在主动收绳。
+    /// 保留旧接口，避免其他旧脚本报错。
+    /// 新玩法中不再有持续主动收绳。
     /// </summary>
     public void SetReelHeld(
-        bool held
-    )
+        bool held)
     {
-        reelKeyHeld =
-            held &&
-            currentState == AnchorState.Attached;
     }
 
     private bool FindComponentsAndInitialize()
@@ -437,30 +402,19 @@ public class AnchorRopeRuntime2D : MonoBehaviour
         }
 
         /*
-         * 默认发射器的直接父物体就是潜艇主体。
+         * 从发射器向父级查找潜艇 Rigidbody2D。
+         *
+         * 即使发射器和潜艇之间还有旋转节点，
+         * 也可以找到真正的潜艇 Rigidbody2D。
          */
-        bodyTransform =
-            transform.parent;
-
-        if (bodyTransform == null)
-        {
-            Debug.LogError(
-                $"[Anchor Rope Runtime] " +
-                $"{gameObject.name} 没有父物体。"
-            );
-
-            enabled = false;
-            return false;
-        }
-
         bodyRigidbody =
-            bodyTransform.GetComponent<Rigidbody2D>();
+            GetComponentInParent<Rigidbody2D>();
 
         if (bodyRigidbody == null)
         {
             Debug.LogError(
-                $"[Anchor Rope Runtime] 父物体 " +
-                $"{bodyTransform.name} 缺少 Rigidbody2D。"
+                $"[Anchor Rope Runtime] {gameObject.name} " +
+                "向父级没有找到潜艇 Rigidbody2D。"
             );
 
             enabled = false;
@@ -502,18 +456,13 @@ public class AnchorRopeRuntime2D : MonoBehaviour
         return true;
     }
 
-    /// <summary>
-    /// 查找作为发射船锚的子物体。
-    /// </summary>
     private Transform FindAnchorChild()
     {
         Transform firstChild = null;
 
-        for (
-            int i = 0;
-            i < transform.childCount;
-            i++
-        )
+        for (int i = 0;
+             i < transform.childCount;
+             i++)
         {
             Transform child =
                 transform.GetChild(i);
@@ -526,19 +475,15 @@ public class AnchorRopeRuntime2D : MonoBehaviour
             string lowerName =
                 child.name.ToLowerInvariant();
 
-            if (
-                lowerName.Contains("anchor") ||
-                child.name.Contains("锚")
-            )
+            if (lowerName.Contains("anchor") ||
+                child.name.Contains("锚"))
             {
                 return child;
             }
         }
 
-        if (
-            firstChild != null &&
-            settings.ShowDebugLog
-        )
+        if (firstChild != null &&
+            settings.ShowDebugLog)
         {
             Debug.LogWarning(
                 $"[Anchor Rope Runtime] " +
@@ -590,72 +535,53 @@ public class AnchorRopeRuntime2D : MonoBehaviour
             return;
         }
 
-        if (runtimeLineMaterial != null)
+        if (runtimeLineMaterial == null)
         {
-            if (
-                runtimeLineMaterial.HasProperty(
-                    "_Color"
-                )
-            )
-            {
-                runtimeLineMaterial.SetColor(
-                    "_Color",
-                    settings.RopeColor
-                );
-            }
-
-            if (
-                runtimeLineMaterial.HasProperty(
-                    "_BaseColor"
-                )
-            )
-            {
-                runtimeLineMaterial.SetColor(
-                    "_BaseColor",
-                    settings.RopeColor
-                );
-            }
-
-            lineRenderer.sharedMaterial =
-                runtimeLineMaterial;
-
-            return;
-        }
-
-        Shader shader =
-            Shader.Find(
-                "Sprites/Default"
-            );
-
-        if (shader == null)
-        {
-            shader =
+            Shader shader =
                 Shader.Find(
-                    "Universal Render Pipeline/2D/Sprite-Unlit-Default"
+                    "Sprites/Default"
                 );
+
+            if (shader == null)
+            {
+                shader =
+                    Shader.Find(
+                        "Universal Render Pipeline/2D/Sprite-Unlit-Default"
+                    );
+            }
+
+            if (shader == null)
+            {
+                Debug.LogWarning(
+                    $"[Anchor Rope Runtime] " +
+                    $"{gameObject.name} 找不到适合绳子的 Shader。"
+                );
+
+                return;
+            }
+
+            runtimeLineMaterial =
+                new Material(shader)
+                {
+                    name =
+                        "AutoGenerated_RopeMaterial"
+                };
         }
 
-        if (shader == null)
-        {
-            Debug.LogWarning(
-                $"[Anchor Rope Runtime] " +
-                $"{gameObject.name} 找不到适合绳子的 Shader。"
-            );
+        ApplyColorToRuntimeMaterial();
 
+        lineRenderer.sharedMaterial =
+            runtimeLineMaterial;
+    }
+
+    private void ApplyColorToRuntimeMaterial()
+    {
+        if (runtimeLineMaterial == null)
+        {
             return;
         }
 
-        runtimeLineMaterial =
-            new Material(shader);
-
-        runtimeLineMaterial.name =
-            "AutoGenerated_RopeMaterial";
-
-        if (
-            runtimeLineMaterial.HasProperty(
-                "_Color"
-            )
-        )
+        if (runtimeLineMaterial.HasProperty("_Color"))
         {
             runtimeLineMaterial.SetColor(
                 "_Color",
@@ -663,27 +589,18 @@ public class AnchorRopeRuntime2D : MonoBehaviour
             );
         }
 
-        if (
-            runtimeLineMaterial.HasProperty(
-                "_BaseColor"
-            )
-        )
+        if (runtimeLineMaterial.HasProperty("_BaseColor"))
         {
             runtimeLineMaterial.SetColor(
                 "_BaseColor",
                 settings.RopeColor
             );
         }
-
-        lineRenderer.sharedMaterial =
-            runtimeLineMaterial;
     }
 
     private void UpdateAnchorFlight()
     {
-        if (
-            currentState != AnchorState.Flying
-        )
+        if (currentState != AnchorState.Flying)
         {
             return;
         }
@@ -699,15 +616,11 @@ public class AnchorRopeRuntime2D : MonoBehaviour
                 Time.deltaTime
             );
 
-        RaycastHit2D hit;
-
-        if (
-            detector.TryDetectFlightHit(
+        if (detector.TryDetectFlightHit(
                 previousPosition,
                 nextPosition,
-                out hit
-            )
-        )
+                out RaycastHit2D hit
+            ))
         {
             HandleFlightHit(
                 hit
@@ -749,8 +662,7 @@ public class AnchorRopeRuntime2D : MonoBehaviour
     }
 
     private void HandleFlightHit(
-        RaycastHit2D hit
-    )
+        RaycastHit2D hit)
     {
         anchorPoint =
             hit.point;
@@ -762,16 +674,34 @@ public class AnchorRopeRuntime2D : MonoBehaviour
             anchorPoint
         );
 
-        AttachAnchor();
+        /*
+         * 命中墙壁后只短暂停留。
+         *
+         * 不再进入永久 Attached 状态，
+         * 也不会在等待期间持续给潜艇拉力。
+         */
+        currentState =
+            AnchorState.WaitingWallPull;
+
+        wallPullDelayTimer =
+            settings.WallHitPullDelay;
 
         if (settings.ShowDebugLog)
         {
             Debug.Log(
-                $"[Anchor Launcher] {gameObject.name} 命中目标。\n" +
+                $"[Anchor Launcher] {gameObject.name} 命中墙壁。\n" +
                 $"命中物体：{hit.collider.gameObject.name}\n" +
-                $"固定点：{hit.point}\n" +
-                $"发射方向：{launchDirection}"
+                $"命中点：{hit.point}\n" +
+                $"将在 {settings.WallHitPullDelay:F2} 秒后拉拽潜艇并自动回收。"
             );
+        }
+
+        /*
+         * 设置为 0 时立即拉拽并回收。
+         */
+        if (wallPullDelayTimer <= 0f)
+        {
+            ExecuteWallPullAndAutomaticRetract();
         }
     }
 
@@ -781,39 +711,140 @@ public class AnchorRopeRuntime2D : MonoBehaviour
         {
             Debug.Log(
                 $"[Anchor Launcher] {gameObject.name} " +
-                $"未命中目标，到达最大距离后自动收回。"
+                "未命中墙壁，到达最大距离后自动收回。"
             );
         }
 
-        StartRetractingAnchor();
+        BeginAutomaticRetract();
     }
 
-    private void AttachAnchor()
+    /// <summary>
+    /// 命中等待结束后：
+    /// 先给潜艇一次冲量，再开始自动收锚。
+    /// </summary>
+    private void ExecuteWallPullAndAutomaticRetract()
     {
-        currentState =
-            AnchorState.Attached;
+        if (currentState !=
+            AnchorState.WaitingWallPull)
+        {
+            return;
+        }
 
-        reelKeyHeld = false;
+        ApplyWallPullImpulse();
+        BeginAutomaticRetract();
+    }
+
+    /// <summary>
+    /// 从潜艇 Rigidbody2D 的真实世界质心指向锚点，
+    /// 并施加一次性冲量。
+    ///
+    /// AddForce 默认作用在 Rigidbody2D 质心，
+    /// 所以不会因为发射器安装在潜艇边缘而额外制造扭矩。
+    /// </summary>
+    private void ApplyWallPullImpulse()
+    {
+        if (bodyRigidbody == null ||
+            settings.WallPullImpulse <= 0f)
+        {
+            return;
+        }
+
+        Vector2 bodyCenter =
+            bodyRigidbody.worldCenterOfMass;
+
+        Vector2 currentWallAnchorPoint =
+            anchorTransform != null
+                ? (Vector2)anchorTransform.position
+                : anchorPoint;
+
+        /*
+         * 从潜艇真实质心指向锚点。
+         */
+        Vector2 bodyToAnchor =
+            currentWallAnchorPoint -
+            bodyCenter;
+
+        if (bodyToAnchor.sqrMagnitude <=
+            0.000001f)
+        {
+            return;
+        }
+
+        Vector2 pullDirection =
+            bodyToAnchor.normalized;
+
+        Vector2 pullImpulse =
+            pullDirection *
+            settings.WallPullImpulse;
+
+        /*
+         * 一次性冲量。
+         *
+         * 这里不是持续 Force，
+         * 因此不会继续把潜艇锁在墙壁上。
+         */
+        bodyRigidbody.AddForce(
+            pullImpulse,
+            ForceMode2D.Impulse
+        );
+
+        if (settings.ShowDebugLog)
+        {
+            Debug.Log(
+                $"[Anchor Launcher] {gameObject.name} 对潜艇施加一次拉拽冲量。\n" +
+                $"潜艇质心：{bodyCenter}\n" +
+                $"锚点：{currentWallAnchorPoint}\n" +
+                $"方向：{pullDirection}\n" +
+                $"冲量：{pullImpulse}"
+            );
+        }
+    }
+
+    private void BeginAutomaticRetract()
+    {
+        if (currentState == AnchorState.Idle ||
+            currentState == AnchorState.Retracting)
+        {
+            return;
+        }
+
+        wallPullDelayTimer = 0f;
+
+        currentState =
+            AnchorState.Retracting;
+
+        if (lineRenderer != null)
+        {
+            lineRenderer.enabled = true;
+        }
+
+        /*
+         * 播放对应玩家自己的回收震动。
+         */
+        settings.NotifyAutomaticRetractStarted();
     }
 
     private void UpdateAnchorRetract()
     {
-        if (
-            currentState != AnchorState.Retracting
-        )
+        if (currentState !=
+            AnchorState.Retracting)
         {
             return;
         }
 
-        if (
-            !TryGetLaunchDirection(
+        if (!TryGetLaunchDirection(
                 out Vector2 direction
-            )
-        )
+            ))
         {
             return;
         }
 
+        /*
+         * 回收目标位置始终根据发射器当前方向实时计算。
+         *
+         * 潜艇移动或旋转时，
+         * 船锚会继续追向发射器现在的位置。
+         */
         Vector2 targetPosition =
             GetAnchorRestWorldPosition(
                 direction
@@ -854,7 +885,7 @@ public class AnchorRopeRuntime2D : MonoBehaviour
         currentState =
             AnchorState.Idle;
 
-        reelKeyHeld = false;
+        wallPullDelayTimer = 0f;
 
         anchorTransform.SetParent(
             transform,
@@ -893,219 +924,17 @@ public class AnchorRopeRuntime2D : MonoBehaviour
     }
 
     /// <summary>
-    /// 根据船锚中心和发射器中心的实时位置施加拉力。
-    ///
-    /// 拉力作用在发射器所在的位置，
-    /// 因此发射器偏离潜艇重心时可以自然产生旋转。
-    /// </summary>
-    /// <summary>
-    /// 根据船锚中心和发射器中心的实时位置施加拉力。
-    ///
-    /// 使用 AddForce 将力作用在潜艇质心，
-    /// 避免水平拉力因为发射器偏离质心而产生额外旋转，
-    /// 进而表现为向上或向下的加速度。
-    /// </summary>
-    /// <summary>
-    /// 根据潜艇 Rigidbody2D 的真实质心和船锚位置，
-    /// 持续向船锚方向施加拉力。
-    ///
-    /// 因为力通过 Rigidbody2D.AddForce 作用于质心，
-    /// 所以拉力方向也必须从质心指向船锚，
-    /// 不能从发射器位置指向船锚。
-    /// </summary>
-    private void ApplyRealtimeRopePull()
-    {
-        if (
-            anchorTransform == null ||
-            bodyRigidbody == null
-        )
-        {
-            return;
-        }
-
-        /*
-         * 船锚当前的世界坐标。
-         */
-        Vector2 anchorCenter =
-            anchorTransform.position;
-
-        anchorPoint =
-            anchorCenter;
-
-        /*
-         * Rigidbody2D 的真实世界质心。
-         *
-         * 不能使用发射器的 transform.position，
-         * 因为最终 AddForce 是作用在 Rigidbody2D 质心上的。
-         */
-        Vector2 bodyCenter =
-            bodyRigidbody.worldCenterOfMass;
-
-        /*
-         * 从潜艇质心指向船锚。
-         */
-        Vector2 bodyToAnchor =
-            anchorCenter -
-            bodyCenter;
-
-        /*
-         * 消除非常微小的浮点误差。
-         *
-         * 例如理论上完全水平时，
-         * Y 可能仍然会出现 0.00001 之类的数值。
-         */
-        const float axisSnapDistance = 0.02f;
-
-        if (
-            Mathf.Abs(bodyToAnchor.y) <=
-            axisSnapDistance
-        )
-        {
-            bodyToAnchor.y = 0f;
-        }
-
-        if (
-            Mathf.Abs(bodyToAnchor.x) <=
-            axisSnapDistance
-        )
-        {
-            bodyToAnchor.x = 0f;
-        }
-
-        float distanceToAnchor =
-            bodyToAnchor.magnitude;
-
-        if (
-            distanceToAnchor <=
-            settings.StopPullDistance ||
-            distanceToAnchor <= 0.0001f
-        )
-        {
-            return;
-        }
-
-        Vector2 pullDirection =
-            bodyToAnchor /
-            distanceToAnchor;
-
-        /*
-         * 默认的持续自然拉力。
-         */
-        float pullAcceleration =
-            settings.PassivePullAcceleration;
-
-        float maximumPullSpeed =
-            settings.PassiveMaxPullSpeed;
-
-        /*
-         * 玩家主动收绳时，
-         * 在自然拉力基础上增加主动拉力。
-         */
-        if (
-            currentState == AnchorState.Attached &&
-            reelKeyHeld
-        )
-        {
-            pullAcceleration +=
-                settings.ReelPullAcceleration;
-
-            maximumPullSpeed =
-                Mathf.Max(
-                    maximumPullSpeed,
-                    settings.MaxReelSpeed
-                );
-        }
-
-        if (
-            pullAcceleration <= 0f ||
-            maximumPullSpeed <= 0f
-        )
-        {
-            return;
-        }
-
-        /*
-         * 获取潜艇整体速度。
-         */
-        Vector2 currentVelocity =
-            bodyRigidbody.velocity;
-
-        /*
-         * 计算潜艇目前朝船锚方向的速度。
-         */
-        float speedTowardsAnchor =
-            Vector2.Dot(
-                currentVelocity,
-                pullDirection
-            );
-
-        /*
-         * 已经达到允许的最大拉动速度时，
-         * 不再继续沿该方向加速。
-         */
-        if (
-            speedTowardsAnchor >=
-            maximumPullSpeed
-        )
-        {
-            return;
-        }
-
-        float remainingSpeed =
-            maximumPullSpeed -
-            speedTowardsAnchor;
-
-        float maximumAccelerationThisStep =
-            remainingSpeed /
-            Mathf.Max(
-                Time.fixedDeltaTime,
-                0.0001f
-            );
-
-        float actualAcceleration =
-            Mathf.Min(
-                pullAcceleration,
-                maximumAccelerationThisStep
-            );
-
-        if (actualAcceleration <= 0f)
-        {
-            return;
-        }
-
-        /*
-         * F = m × a
-         */
-        Vector2 pullForce =
-            pullDirection *
-            actualAcceleration *
-            bodyRigidbody.mass;
-
-        /*
-         * AddForce 默认作用于 Rigidbody2D 的质心。
-         */
-        bodyRigidbody.AddForce(
-            pullForce,
-            ForceMode2D.Force
-        );
-    }
-
-    /// <summary>
-    /// 每帧刷新绳子的两个端点。
+    /// 每帧严格刷新绳子两端的位置。
     /// </summary>
     private void UpdateRopeVisual()
     {
-        if (
-            lineRenderer == null ||
-            anchorTransform == null
-        )
+        if (lineRenderer == null ||
+            anchorTransform == null)
         {
             return;
         }
 
-        if (
-            currentState == AnchorState.Idle
-        )
+        if (currentState == AnchorState.Idle)
         {
             lineRenderer.enabled = false;
             return;
@@ -1114,21 +943,17 @@ public class AnchorRopeRuntime2D : MonoBehaviour
         lineRenderer.enabled = true;
 
         /*
-         * 绳子起点始终是发射器实时中心。
+         * 绳子起点始终是发射器当前中心。
          */
         Vector3 ropeStart =
             transform.position;
 
         /*
-         * 绳子终点始终是船锚实时中心。
+         * 绳子终点始终是船锚当前中心。
          */
         Vector3 ropeEnd =
             anchorTransform.position;
 
-        /*
-         * 防止两个物体 Z 坐标不一致，
-         * 导致绳子视觉上倾斜或排序异常。
-         */
         ropeEnd.z =
             ropeStart.z;
 
@@ -1154,8 +979,7 @@ public class AnchorRopeRuntime2D : MonoBehaviour
     }
 
     private void UpdateRopeWidth(
-        float visualLength
-    )
+        float visualLength)
     {
         if (lineRenderer == null)
         {
@@ -1195,19 +1019,15 @@ public class AnchorRopeRuntime2D : MonoBehaviour
 
     private void PlaceAnchorAtRestPosition()
     {
-        if (
-            anchorTransform == null ||
-            anchorTransform.parent != transform
-        )
+        if (anchorTransform == null ||
+            anchorTransform.parent != transform)
         {
             return;
         }
 
-        if (
-            !TryGetLaunchDirection(
+        if (!TryGetLaunchDirection(
                 out Vector2 direction
-            )
-        )
+            ))
         {
             return;
         }
@@ -1229,8 +1049,7 @@ public class AnchorRopeRuntime2D : MonoBehaviour
     }
 
     private Vector2 GetAnchorRestWorldPosition(
-        Vector2 direction
-    )
+        Vector2 direction)
     {
         return
             (Vector2)transform.position +
@@ -1239,11 +1058,11 @@ public class AnchorRopeRuntime2D : MonoBehaviour
     }
 
     /// <summary>
-    /// 根据船锚最初相对于发射器的位置计算发射方向。
+    /// 根据船锚最初相对于发射器的位置计算实际发射方向。
+    /// AnchorRotator 转动发射器后，这个方向会随之改变。
     /// </summary>
     private bool TryGetLaunchDirection(
-        out Vector2 direction
-    )
+        out Vector2 direction)
     {
         Vector2 launcherCenter =
             transform.position;
@@ -1257,12 +1076,11 @@ public class AnchorRopeRuntime2D : MonoBehaviour
             (Vector2)originalAnchorWorldPosition -
             launcherCenter;
 
-        if (
-            rawDirection.sqrMagnitude <=
-            0.0001f
-        )
+        if (rawDirection.sqrMagnitude <=
+            0.0001f)
         {
-            direction = Vector2.zero;
+            direction =
+                Vector2.zero;
 
             if (settings.ShowDebugLog)
             {
@@ -1282,8 +1100,7 @@ public class AnchorRopeRuntime2D : MonoBehaviour
     }
 
     private void SetAnchorWorldPosition(
-        Vector2 position
-    )
+        Vector2 position)
     {
         if (anchorTransform == null)
         {
@@ -1312,11 +1129,9 @@ public class AnchorRopeRuntime2D : MonoBehaviour
 
         Transform previewAnchor = null;
 
-        for (
-            int i = 0;
-            i < transform.childCount;
-            i++
-        )
+        for (int i = 0;
+             i < transform.childCount;
+             i++)
         {
             Transform child =
                 transform.GetChild(i);
@@ -1324,20 +1139,16 @@ public class AnchorRopeRuntime2D : MonoBehaviour
             string lowerName =
                 child.name.ToLowerInvariant();
 
-            if (
-                lowerName.Contains("anchor") ||
-                child.name.Contains("锚")
-            )
+            if (lowerName.Contains("anchor") ||
+                child.name.Contains("锚"))
             {
                 previewAnchor = child;
                 break;
             }
         }
 
-        if (
-            previewAnchor == null &&
-            transform.childCount > 0
-        )
+        if (previewAnchor == null &&
+            transform.childCount > 0)
         {
             previewAnchor =
                 transform.GetChild(0);
@@ -1355,10 +1166,8 @@ public class AnchorRopeRuntime2D : MonoBehaviour
             (Vector2)previewAnchor.position -
             launcherCenter;
 
-        if (
-            rawDirection.sqrMagnitude <=
-            0.0001f
-        )
+        if (rawDirection.sqrMagnitude <=
+            0.0001f)
         {
             return;
         }

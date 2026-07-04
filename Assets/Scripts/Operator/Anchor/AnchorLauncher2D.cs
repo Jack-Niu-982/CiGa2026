@@ -1,12 +1,9 @@
 using UnityEngine;
 
 /// <summary>
-/// 负责船锚输入和船锚参数配置。
-///
-/// 该组件可以被 OperateController 启用或禁用。
-///
-/// 船锚飞行、自动收回、绳子刷新和持续拉力，
-/// 全部由 AnchorRopeRuntime2D 常驻处理。
+/// 负责船锚输入和参数配置。
+/// 船锚实际飞行、命中墙壁后的延迟拉拽、自动回收和绳子显示，
+/// 由常驻的 AnchorRopeRuntime2D 处理。
 /// </summary>
 [DisallowMultipleComponent]
 [RequireComponent(typeof(LineRenderer))]
@@ -23,211 +20,102 @@ public class AnchorLauncher2D : MonoBehaviour
     }
 
     [Header("船锚方向")]
-
     [Tooltip("该船锚发射器的基础方向。")]
-    [SerializeField]
-    private AnchorDirection anchorDirection =
-        AnchorDirection.Up;
+    [SerializeField] private AnchorDirection anchorDirection = AnchorDirection.Up;
 
     [Header("玩家输入")]
+    [Tooltip("当前正在操作该发射器的玩家输入。多人模式下由 AnchorLauncherUseController2D 自动设置。")]
+    [SerializeField] private PlayerInputBase currentPlayerInput;
 
-    [Tooltip(
-        "当前正在操作该发射器的玩家输入。\n" +
-        "多人模式下由 AnchorLauncherUseController2D 自动设置。"
-    )]
-    [SerializeField]
-    private PlayerInputBase currentPlayerInput;
+    [Tooltip("仅在场景中只有一个启用的 PlayerInputBase 时自动绑定。多人模式下不会自动选择玩家。")]
+    [SerializeField] private bool autoFindPlayerInput = true;
 
-    [Tooltip(
-        "仅在场景中只有一个启用的 PlayerInputBase 时自动绑定。\n" +
-        "多人模式下不会自动选择玩家。"
-    )]
-    [SerializeField]
-    private bool autoFindPlayerInput = true;
-
-    [Tooltip(
-        "一旦该发射器被交互系统明确绑定过玩家，" +
-        "之后即使解绑，也不会再自动抢占其他玩家的输入。"
-    )]
-    [SerializeField]
-    private bool keepExplicitBindingMode = true;
+    [Tooltip("一旦交互系统明确绑定过玩家，之后即使解绑，也不会自动抢占其他玩家的输入。")]
+    [SerializeField] private bool keepExplicitBindingMode = true;
 
     [Header("船锚引用")]
-
-    [Tooltip(
-        "船锚收回状态下的物体。\n" +
-        "留空时会自动寻找名字中包含 Anchor 或“锚”的子物体。"
-    )]
-    [SerializeField]
-    private Transform anchorReference;
+    [Tooltip("船锚物体。留空时自动寻找名字中包含 Anchor 或“锚”的子物体。")]
+    [SerializeField] private Transform anchorReference;
 
     [Header("发射检测")]
+    [Tooltip("负责检测船锚飞行过程中是否命中墙壁。")]
+    [SerializeField] private AnchorLaunchDetector2D launchDetector;
 
-    [Tooltip("负责检测船锚飞行过程中是否命中目标。")]
-    [SerializeField]
-    private AnchorLaunchDetector2D launchDetector;
-
-    [Tooltip(
-        "最大绳长，" +
-        "同时也是未命中时的最大飞行距离。"
-    )]
+    [Tooltip("最大绳长，同时也是未命中墙壁时的最大飞行距离。")]
     [Min(0.1f)]
-    [SerializeField]
-    private float maxRopeLength = 15f;
+    [SerializeField] private float maxRopeLength = 15f;
 
-    [Header("船锚设置")]
-
+    [Header("船锚移动")]
     [Tooltip("待机状态下，船锚距离发射器中心的距离。")]
     [Min(0f)]
-    [SerializeField]
-    private float anchorOffset = 0.5f;
+    [SerializeField] private float anchorOffset = 0.5f;
 
     [Tooltip("船锚发射速度。")]
     [Min(0f)]
-    [SerializeField]
-    private float anchorShootSpeed = 25f;
+    [SerializeField] private float anchorShootSpeed = 25f;
 
-    [Tooltip("船锚收回速度。")]
+    [Tooltip("船锚自动收回速度。")]
     [Min(0.01f)]
-    [SerializeField]
-    private float anchorRetractSpeed = 18f;
+    [SerializeField] private float anchorRetractSpeed = 18f;
 
-    [Header("永久自然拉力")]
-
-    [Tooltip("船锚固定后持续提供的拉力加速度。")]
+    [Header("命中墙壁后的拉拽")]
+    [Tooltip("命中墙壁后等待多久，再给潜艇一次朝锚点方向的冲量并自动收锚。")]
     [Min(0f)]
-    [SerializeField]
-    private float passivePullAcceleration = 0.8f;
+    [SerializeField] private float wallHitPullDelay = 0.5f;
 
-    [Tooltip(
-        "自然拉力允许潜艇达到的" +
-        "最大朝向锚点速度。"
-    )]
+    [Tooltip("施加给潜艇的一次性冲量大小。数值越大，被锚拽动得越明显。")]
     [Min(0f)]
-    [SerializeField]
-    private float passiveMaxPullSpeed = 1.5f;
-
-    [Header("玩家主动拉回")]
-
-    [Tooltip(
-        "玩家主动收紧绳子时，" +
-        "额外增加的拉力加速度。"
-    )]
-    [Min(0f)]
-    [SerializeField]
-    private float reelPullAcceleration = 12f;
-
-    [Tooltip(
-        "主动拉回时允许达到的" +
-        "最大朝锚点速度。"
-    )]
-    [Min(0f)]
-    [SerializeField]
-    private float maxReelSpeed = 8f;
-
-    [Tooltip(
-        "距离锚点小于该值后，" +
-        "停止施加拉力。"
-    )]
-    [Min(0f)]
-    [SerializeField]
-    private float stopPullDistance = 0.15f;
+    [SerializeField] private float wallPullImpulse = 6f;
 
     [Header("绳子宽度")]
-
-    [Tooltip("开启后，绳子越长越细。")]
-    [SerializeField]
-    private bool inverseWidthByLength = true;
-
-    [Tooltip("参考长度下的绳子宽度。")]
-    [Min(0.001f)]
-    [SerializeField]
-    private float ropeWidthAtReferenceLength = 0.07f;
-
-    [Tooltip("用于计算绳子宽度的参考长度。")]
-    [Min(0.01f)]
-    [SerializeField]
-    private float widthReferenceLength = 5f;
-
-    [Tooltip("绳子最小宽度。")]
-    [Min(0.001f)]
-    [SerializeField]
-    private float minimumRopeWidth = 0.025f;
-
-    [Tooltip("绳子最大宽度。")]
-    [Min(0.001f)]
-    [SerializeField]
-    private float maximumRopeWidth = 0.13f;
+    [SerializeField] private bool inverseWidthByLength = true;
+    [Min(0.001f)][SerializeField] private float ropeWidthAtReferenceLength = 0.07f;
+    [Min(0.01f)][SerializeField] private float widthReferenceLength = 5f;
+    [Min(0.001f)][SerializeField] private float minimumRopeWidth = 0.025f;
+    [Min(0.001f)][SerializeField] private float maximumRopeWidth = 0.13f;
 
     [Header("绳子显示")]
-
-    [Tooltip("绳子材质。留空时会自动创建。")]
-    [SerializeField]
-    private Material ropeMaterial;
-
-    [SerializeField]
-    private Color ropeColor = Color.white;
-
-    [SerializeField]
-    private string ropeSortingLayerName = "Default";
-
-    [SerializeField]
-    private int ropeOrderInLayer;
-
-    [SerializeField]
-    private bool autoConfigureLineRenderer = true;
+    [SerializeField] private Material ropeMaterial;
+    [SerializeField] private Color ropeColor = Color.white;
+    [SerializeField] private string ropeSortingLayerName = "Default";
+    [SerializeField] private int ropeOrderInLayer;
+    [SerializeField] private bool autoConfigureLineRenderer = true;
 
     [Header("常驻运行组件")]
-
-    [Tooltip(
-        "负责绳子和物理逻辑的常驻组件，" +
-        "不要禁用它。"
-    )]
-    [SerializeField]
-    private AnchorRopeRuntime2D ropeRuntime;
+    [Tooltip("负责绳子和物理逻辑的常驻组件，不要禁用它。")]
+    [SerializeField] private AnchorRopeRuntime2D ropeRuntime;
 
     [Header("调试")]
+    [SerializeField] private bool showDebugLog = true;
 
-    [SerializeField]
-    private bool showDebugLog = true;
-
-    /// <summary>
-    /// 是否已经进入由交互系统明确指定玩家的模式。
-    /// </summary>
     private bool hasUsedExplicitPlayerBinding;
 
-    /// <summary>
-    /// 船锚基础配置方向。
-    /// </summary>
-    public AnchorDirection Direction =>
-        anchorDirection;
+    public AnchorDirection Direction => anchorDirection;
+    public PlayerInputBase CurrentPlayerInput => currentPlayerInput;
+    public bool HasPlayerInput => currentPlayerInput != null;
+
+    public bool IsAnchorActive =>
+        ropeRuntime != null &&
+        ropeRuntime.IsAnchorActive;
 
     /// <summary>
-    /// 当前正在操作该发射器的玩家输入。
+    /// 兼容旧接口。
+    /// 现在表示船锚命中墙壁后，正在等待那次拉拽。
+    /// 不再代表永久固定和持续拉力。
     /// </summary>
-    public PlayerInputBase CurrentPlayerInput =>
-        currentPlayerInput;
+    public bool IsAnchorAttached =>
+        ropeRuntime != null &&
+        ropeRuntime.IsAnchorAttached;
 
-    /// <summary>
-    /// 当前是否已经绑定了一个玩家输入。
-    /// </summary>
-    public bool HasPlayerInput =>
-        currentPlayerInput != null;
+    public bool IsAnchorRetracting =>
+        ropeRuntime != null &&
+        ropeRuntime.IsAnchorRetracting;
 
-    /// <summary>
-    /// 判断当前发射器是否正由指定玩家控制。
-    /// </summary>
-    public bool IsControlledBy(
-        PlayerInputBase playerInput)
-    {
-        return playerInput != null &&
-               currentPlayerInput == playerInput;
-    }
+    public Vector2 AnchorPoint =>
+        ropeRuntime != null
+            ? ropeRuntime.AnchorPoint
+            : Vector2.zero;
 
-    /// <summary>
-    /// 船锚收回状态下的参考物体。
-    /// AnchorRotator 会从这里读取。
-    /// </summary>
     public Transform AnchorReference
     {
         get
@@ -241,23 +129,6 @@ public class AnchorLauncher2D : MonoBehaviour
             return anchorReference;
         }
     }
-
-    public bool IsAnchorActive =>
-        ropeRuntime != null &&
-        ropeRuntime.IsAnchorActive;
-
-    public bool IsAnchorAttached =>
-        ropeRuntime != null &&
-        ropeRuntime.IsAnchorAttached;
-
-    public bool IsAnchorRetracting =>
-        ropeRuntime != null &&
-        ropeRuntime.IsAnchorRetracting;
-
-    public Vector2 AnchorPoint =>
-        ropeRuntime != null
-            ? ropeRuntime.AnchorPoint
-            : Vector2.zero;
 
     internal AnchorLaunchDetector2D LaunchDetector
     {
@@ -285,20 +156,11 @@ public class AnchorLauncher2D : MonoBehaviour
     internal float AnchorRetractSpeed =>
         anchorRetractSpeed;
 
-    internal float PassivePullAcceleration =>
-        passivePullAcceleration;
+    internal float WallHitPullDelay =>
+        wallHitPullDelay;
 
-    internal float PassiveMaxPullSpeed =>
-        passiveMaxPullSpeed;
-
-    internal float ReelPullAcceleration =>
-        reelPullAcceleration;
-
-    internal float MaxReelSpeed =>
-        maxReelSpeed;
-
-    internal float StopPullDistance =>
-        stopPullDistance;
+    internal float WallPullImpulse =>
+        wallPullImpulse;
 
     internal bool InverseWidthByLength =>
         inverseWidthByLength;
@@ -333,6 +195,13 @@ public class AnchorLauncher2D : MonoBehaviour
     internal bool ShowDebugLog =>
         showDebugLog;
 
+    public bool IsControlledBy(
+        PlayerInputBase playerInput)
+    {
+        return playerInput != null &&
+               currentPlayerInput == playerInput;
+    }
+
     private void Awake()
     {
         FindReferences();
@@ -357,7 +226,6 @@ public class AnchorLauncher2D : MonoBehaviour
         }
 
         SetCurrentInputFeedback(true);
-
         LogCurrentInput();
     }
 
@@ -378,34 +246,31 @@ public class AnchorLauncher2D : MonoBehaviour
         if (currentPlayerInput == null ||
             !currentPlayerInput.isActiveAndEnabled)
         {
-            ropeRuntime.SetReelHeld(false);
-
             SetCurrentInputFeedback(false);
-
             return;
         }
 
         /*
-         * 告诉对应玩家的手柄：
-         * 该玩家正在操作船锚。
+         * 现在已经没有持续收绳功能，
+         * 所以第二个参数始终传 false。
          *
-         * 只有船锚已经固定时，
-         * 才允许右摇杆绕圈收绳。
+         * 这样手柄右摇杆不会再触发持续收绳震动。
          */
         currentPlayerInput.SetAnchorControlFeedback(
             true,
-            ropeRuntime.IsAnchorAttached
+            false
         );
 
         /*
-         * Q / R1：发射船锚。
+         * 键盘 Q / 手柄 R1：
+         * 发射船锚。
          */
         if (currentPlayerInput.AnchorShootPressed)
         {
-            bool successfullyShot =
+            bool shot =
                 ropeRuntime.TryShootAnchor();
 
-            if (successfullyShot)
+            if (shot)
             {
                 currentPlayerInput
                     .PlayAnchorShootFeedback();
@@ -413,8 +278,11 @@ public class AnchorLauncher2D : MonoBehaviour
         }
 
         /*
-         * R / South：
-         * 松开锚点并开始回收船锚。
+         * 键盘 R / 手柄 South：
+         * 随时取消并回收船锚。
+         *
+         * 如果正在等待命中后的拉拽，
+         * 手动回收会取消那次拉拽。
          */
         if (currentPlayerInput.AnchorRetractPressed)
         {
@@ -429,34 +297,16 @@ public class AnchorLauncher2D : MonoBehaviour
                     .PlayAnchorRetractFeedback();
             }
         }
-
-        /*
-         * 键盘：
-         * 按住 E。
-         *
-         * 手柄：
-         * 顺时针持续转动右摇杆。
-         */
-        ropeRuntime.SetReelHeld(
-            ropeRuntime.IsAnchorAttached &&
-            currentPlayerInput.AnchorReelHeld
-        );
     }
 
     private void OnDisable()
     {
         /*
-         * 玩家退出操作时，
-         * 只取消主动拉回和手柄震动。
+         * 这里只停止读取输入和手柄反馈。
          *
-         * 船锚飞行、自动收回、绳子刷新和自然拉力，
-         * 不会因为这个组件被禁用而停止。
+         * AnchorRopeRuntime2D 仍会继续完成：
+         * 飞行、命中等待、拉拽以及自动回收。
          */
-        if (ropeRuntime != null)
-        {
-            ropeRuntime.SetReelHeld(false);
-        }
-
         SetCurrentInputFeedback(false);
     }
 
@@ -486,34 +336,16 @@ public class AnchorLauncher2D : MonoBehaviour
                 anchorRetractSpeed
             );
 
-        passivePullAcceleration =
+        wallHitPullDelay =
             Mathf.Max(
                 0f,
-                passivePullAcceleration
+                wallHitPullDelay
             );
 
-        passiveMaxPullSpeed =
+        wallPullImpulse =
             Mathf.Max(
                 0f,
-                passiveMaxPullSpeed
-            );
-
-        reelPullAcceleration =
-            Mathf.Max(
-                0f,
-                reelPullAcceleration
-            );
-
-        maxReelSpeed =
-            Mathf.Max(
-                0f,
-                maxReelSpeed
-            );
-
-        stopPullDistance =
-            Mathf.Max(
-                0f,
-                stopPullDistance
+                wallPullImpulse
             );
 
         ropeWidthAtReferenceLength =
@@ -549,28 +381,28 @@ public class AnchorLauncher2D : MonoBehaviour
     }
 
     /// <summary>
-    /// 供其他系统直接调用船锚发射。
+    /// 供其他系统直接调用发射。
     /// </summary>
     public bool TryShootAnchor()
     {
         FindRuntime();
 
-        bool successfullyShot =
+        bool shot =
             ropeRuntime != null &&
             ropeRuntime.TryShootAnchor();
 
-        if (successfullyShot &&
+        if (shot &&
             currentPlayerInput != null)
         {
             currentPlayerInput
                 .PlayAnchorShootFeedback();
         }
 
-        return successfullyShot;
+        return shot;
     }
 
     /// <summary>
-    /// 供其他系统直接调用船锚回收。
+    /// 供其他系统直接调用回收。
     /// </summary>
     public void StartRetractingAnchor()
     {
@@ -595,9 +427,11 @@ public class AnchorLauncher2D : MonoBehaviour
     }
 
     /// <summary>
-    /// 供其他系统设置是否正在主动拉回。
+    /// 保留旧接口，避免其他旧脚本报错。
+    /// 新玩法中不再产生持续收绳拉力。
     /// </summary>
-    public void SetReelHeld(bool held)
+    public void SetReelHeld(
+        bool held)
     {
         FindRuntime();
 
@@ -608,16 +442,26 @@ public class AnchorLauncher2D : MonoBehaviour
     }
 
     /// <summary>
-    /// 玩家开始操作时，
-    /// 传入准确的玩家输入。
+    /// 由 AnchorRopeRuntime2D 在自动回收开始时调用。
+    /// </summary>
+    internal void NotifyAutomaticRetractStarted()
+    {
+        if (currentPlayerInput == null ||
+            !isActiveAndEnabled)
+        {
+            return;
+        }
+
+        currentPlayerInput
+            .PlayAnchorRetractFeedback();
+    }
+
+    /// <summary>
+    /// 玩家开始操作时绑定准确的玩家输入。
     /// </summary>
     public void SetPlayerInput(
         PlayerInputBase playerInput)
     {
-        /*
-         * 只要交互系统主动调用过一次，
-         * 就说明当前游戏已经开始按玩家所有权分配输入。
-         */
         hasUsedExplicitPlayerBinding = true;
 
         if (currentPlayerInput == playerInput)
@@ -629,9 +473,6 @@ public class AnchorLauncher2D : MonoBehaviour
             return;
         }
 
-        /*
-         * 停止旧玩家手柄的震动。
-         */
         if (currentPlayerInput != null)
         {
             currentPlayerInput
@@ -659,19 +500,11 @@ public class AnchorLauncher2D : MonoBehaviour
     }
 
     /// <summary>
-    /// 玩家结束操作时清除输入，
-    /// 并停止主动拉回和震动。
-    ///
-    /// 如果传入 playerInput，
-    /// 只有当前绑定的输入与其一致时才会清除。
+    /// 玩家结束操作时清除输入绑定。
     /// </summary>
     public void ClearPlayerInput(
         PlayerInputBase playerInput = null)
     {
-        /*
-         * 防止玩家一退出时，
-         * 错误清除已经绑定给玩家二的输入。
-         */
         if (playerInput != null &&
             currentPlayerInput != playerInput)
         {
@@ -688,11 +521,6 @@ public class AnchorLauncher2D : MonoBehaviour
         }
 
         currentPlayerInput = null;
-
-        if (ropeRuntime != null)
-        {
-            ropeRuntime.SetReelHeld(false);
-        }
     }
 
     private void SetCurrentInputFeedback(
@@ -706,9 +534,7 @@ public class AnchorLauncher2D : MonoBehaviour
         currentPlayerInput
             .SetAnchorControlFeedback(
                 isControllingAnchor,
-                isControllingAnchor &&
-                ropeRuntime != null &&
-                ropeRuntime.IsAnchorAttached
+                false
             );
     }
 
@@ -720,20 +546,12 @@ public class AnchorLauncher2D : MonoBehaviour
             return;
         }
 
-        /*
-         * 一旦交互系统明确绑定过玩家，
-         * 解绑后也不能自动抓取场景中的其他玩家。
-         */
         if (keepExplicitBindingMode &&
             hasUsedExplicitPlayerBinding)
         {
             return;
         }
 
-        /*
-         * 如果发射器本身就在玩家物体或其子物体下，
-         * 可以安全地只查找自己的层级。
-         */
         currentPlayerInput =
             GetComponent<PlayerInputBase>();
 
@@ -748,15 +566,6 @@ public class AnchorLauncher2D : MonoBehaviour
             return;
         }
 
-        /*
-         * 单人模式兜底：
-         *
-         * 只有场景中恰好存在一个启用的 PlayerInputBase 时，
-         * 才允许自动绑定。
-         *
-         * 只要检测到两个或更多玩家，
-         * 就绝不擅自选择其中一个。
-         */
         PlayerInputBase[] activePlayerInputs =
             FindObjectsOfType<PlayerInputBase>();
 
@@ -774,7 +583,7 @@ public class AnchorLauncher2D : MonoBehaviour
             Debug.Log(
                 $"[AnchorLauncher2D] {gameObject.name} 检测到 " +
                 $"{activePlayerInputs.Length} 个玩家输入，" +
-                "不会自动绑定。等待交互控制器指定玩家。"
+                "不会自动绑定。"
             );
         }
     }
@@ -802,15 +611,15 @@ public class AnchorLauncher2D : MonoBehaviour
 
     private Transform FindAnchorReference()
     {
-        Transform[] childTransforms =
+        Transform[] children =
             GetComponentsInChildren<Transform>(true);
 
         for (int i = 0;
-             i < childTransforms.Length;
+             i < children.Length;
              i++)
         {
             Transform child =
-                childTransforms[i];
+                children[i];
 
             if (child == transform)
             {
@@ -863,8 +672,8 @@ public class AnchorLauncher2D : MonoBehaviour
             $"[AnchorLauncher2D] {gameObject.name} 输入组件已启用。\n" +
             $"方向：{anchorDirection}\n" +
             $"输入来源：{inputName}\n" +
-            "键盘：Q 发射 / R 回收 / 按住 E 收绳\n" +
-            "手柄：R1 发射 / South 回收 / 顺时针转右摇杆收绳"
+            "键盘：Q 发射 / R 回收\n" +
+            "手柄：R1 发射 / South 回收"
         );
     }
 }
