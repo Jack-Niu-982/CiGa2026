@@ -23,6 +23,7 @@ public static class SettingsCreator
         CreateGamepadSettings(folder);
         CreateStationSettings(folder);
         CreateDevSettings(folder);
+        CreateCarryableItemArtSettings(folder);
 
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
@@ -94,6 +95,17 @@ public static class SettingsCreator
     public static void CreateDevSettings(string folder = "Assets/Resources/Settings")
     {
         CreateAsset<DevSettings>(folder, "DevSettings");
+    }
+
+    [MenuItem("Tools/Settings/Create Carryable Item Art Settings")]
+    public static void CreateCarryableItemArtSettingsMenu()
+    {
+        CreateCarryableItemArtSettings();
+    }
+
+    public static void CreateCarryableItemArtSettings(string folder = "Assets/Resources/Settings")
+    {
+        CreateAsset<CarryableItemArtSettings>(folder, "CarryableItemArtSettings");
     }
 
     private static void CreateAsset<T>(string folder, string fileName) where T : ScriptableObject
