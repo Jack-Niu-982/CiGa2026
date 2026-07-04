@@ -6,6 +6,20 @@
 
 当前优先验证核心合作手感。间谍、隐藏目标、手柄震动、结算指认等扩展规则暂不进入第一版实现范围，除非用户后续明确要求。
 
+## 玩家生成约定
+
+- Gameplay 玩家对象必须来自可编辑的玩家 Prefab，当前路径为 `Assets/Prefabs/Gameplay/Player.prefab`。
+- 房间界面只负责维护玩家槽位、准备状态和设备绑定，不在 Gameplay 场景里预摆固定 P1-P4 玩家本体。
+- 进入 Gameplay 前，`GameFlowController` 需要把已准备玩家写入 `GameplaySessionStore`；`Jaeger` 场景里的 `GameplayPlayerSpawner` 再按会话数据动态生成玩家并绑定对应手柄。
+- 场景中可以保留出生点、Spawner、父级根节点和流程控制器。玩家本体不要作为常驻场景对象维护。
+- 玩家 Prefab 需要保留 `PlayerController`、`PlayerOperateInteractor2D`、`KeyboardPlayerInput` 和 `GamepadPlayerInput` 等可检查组件，方便后续手动拖美术、调碰撞体、补动画和绑定引用。
+
+## 插件与包前置条件
+
+- 当前 Unity 插件和包版本基线记录在 `Docs/Technical/PluginAndPackageBaseline.md`。
+- 涉及 Input System、Cinemachine、URP、Unity-MCP、Hot Reload、UI 或相机问题时，先核对这份基线，再判断是否需要升级、回退或重新解析包。
+- `com.unity.inputsystem` 当前保持 `1.8.2`，不要随手回退到 `1.6.3`，否则可能重新触发 Cinemachine 3.1.7 的 `activeValueType` 编译错误。
+
 ## 回复与文档风格
 
 - 所有回复、方案和文档都使用自然流畅的中文。

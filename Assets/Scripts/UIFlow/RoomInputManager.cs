@@ -75,7 +75,7 @@ public class RoomInputManager : MonoBehaviour
 
             if (gamepad.buttonSouth.wasPressedThisFrame)
             {
-                changed |= HandleConfirm(gamepad);
+                changed |= HandleConfirm(gamepad, i);
             }
 
             if (gamepad.buttonEast.wasPressedThisFrame)
@@ -104,7 +104,9 @@ public class RoomInputManager : MonoBehaviour
         }
     }
 
-    private bool HandleConfirm(Gamepad gamepad)
+    private bool HandleConfirm(
+        Gamepad gamepad,
+        int deviceIndex)
     {
         RoomPlayerSlot existing =
             FindSlotByDeviceId(gamepad.deviceId);
@@ -123,7 +125,7 @@ public class RoomInputManager : MonoBehaviour
             return false;
         }
 
-        emptySlot.Assign(gamepad);
+        emptySlot.Assign(gamepad, deviceIndex);
         return true;
     }
 
@@ -193,7 +195,7 @@ public class RoomInputManager : MonoBehaviour
     private RoomPlayerSlot CreateKeyboardSlot()
     {
         RoomPlayerSlot slot = new RoomPlayerSlot(0);
-        slot.AssignDebugDevice(-100, "Keyboard");
+        slot.AssignDebugDevice(-100, -1, "Keyboard");
         return slot;
     }
 

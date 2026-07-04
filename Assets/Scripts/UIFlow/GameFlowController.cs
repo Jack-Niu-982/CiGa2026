@@ -93,6 +93,8 @@ public class GameFlowController : MonoBehaviour
             localPlayerSession.CaptureFrom(roomInputManager);
         }
 
+        GameplaySessionStore.Capture(roomInputManager);
+
         SceneManager.LoadScene(gameplaySceneName);
     }
 

@@ -10,6 +10,8 @@ public static class UIFlowDemoBuilder
 {
     private const string MenuPath = "CiGa2026/Build UI Flow Demo";
     private const string PrefabFolder = "Assets/Prefabs/UI";
+    private const string GameplayPrefabFolder = "Assets/Prefabs/Gameplay";
+    private const string PlayerPrefabPath = "Assets/Prefabs/Gameplay/Player.prefab";
     private const string SceneFolder = "Assets/Scenes";
     private const string MainMenuScenePath = "Assets/Scenes/MainMenu.unity";
     private const string GameplayScenePath = "Assets/Scenes/Jaeger.unity";
@@ -19,6 +21,7 @@ public static class UIFlowDemoBuilder
     {
         EnsureFolder("Assets/Prefabs");
         EnsureFolder(PrefabFolder);
+        EnsureFolder(GameplayPrefabFolder);
         EnsureFolder(SceneFolder);
 
         GameObject mainMenuPanel = CreateMainMenuPanel();
@@ -40,12 +43,14 @@ public static class UIFlowDemoBuilder
         Object.DestroyImmediate(roomPanel);
         Object.DestroyImmediate(pausePanel);
 
+        CreateGameplayPlayerPrefab();
+
         CreateMainMenuScene(
             mainMenuPanelPath,
             roomPanelPath
         );
 
-        CreateGameplayScene(pausePanelPath);
+        CreateGameplayScene(pausePanelPath, PlayerPrefabPath);
 
         UpdateBuildSettings();
 
@@ -363,13 +368,135 @@ public static class UIFlowDemoBuilder
         EditorSceneManager.SaveScene(scene, MainMenuScenePath);
     }
 
-    private static void CreateGameplayScene(string pausePanelPath)
+    private static void CreateGameplayPlayerPrefab()
+    {
+        Scene previousScene =
+            EditorSceneManager.GetActiveScene();
+
+        bool restorePreviousScene =
+            previousScene.IsValid() &&
+            !string.IsNullOrEmpty(previousScene.path) &&
+            previousScene.path != GameplayScenePath;
+
+        Scene gameplayScene =
+            EditorSceneManager.OpenScene(
+                GameplayScenePath,
+                OpenSceneMode.Single
+            );
+
+        GameObject source =
+            GameObject.Find("Players/Player1") ??
+            GameObject.Find("Player1");
+
+        if (source == null &&
+            AssetDatabase.LoadAssetAtPath<GameObject>(PlayerPrefabPath) != null)
+        {
+            EnsurePlayerPrefabComponents(PlayerPrefabPath);
+
+            if (restorePreviousScene)
+            {
+                EditorSceneManager.OpenScene(previousScene.path, OpenSceneMode.Single);
+            }
+
+            return;
+        }
+
+        GameObject prefabSource = source;
+        bool destroyPrefabSource = false;
+
+        if (prefabSource == null)
+        {
+            prefabSource = CreateFallbackPlayerPrefabSource();
+            destroyPrefabSource = true;
+        }
+
+        bool wasActive =
+            prefabSource.activeSelf;
+
+        prefabSource.SetActive(true);
+
+        PrefabUtility.SaveAsPrefabAssetAndConnect(
+            prefabSource,
+            PlayerPrefabPath,
+            InteractionMode.AutomatedAction
+        );
+
+        prefabSource.SetActive(wasActive);
+
+        if (destroyPrefabSource)
+        {
+            Object.DestroyImmediate(prefabSource);
+        }
+
+        EnsurePlayerPrefabComponents(PlayerPrefabPath);
+
+        EditorSceneManager.SaveScene(gameplayScene);
+
+        if (restorePreviousScene)
+        {
+            EditorSceneManager.OpenScene(previousScene.path, OpenSceneMode.Single);
+        }
+    }
+
+    private static GameObject CreateFallbackPlayerPrefabSource()
+    {
+        GameObject player =
+            new GameObject("PlayerPrefabSource");
+
+        player.transform.position = Vector3.zero;
+        player.AddComponent<SpriteRenderer>();
+        player.AddComponent<Rigidbody2D>();
+        player.AddComponent<CircleCollider2D>();
+        player.AddComponent<KeyboardPlayerInput>();
+        player.AddComponent<GamepadPlayerInput>();
+        player.AddComponent<PlayerOperateInteractor2D>();
+        player.AddComponent<PlayerController>();
+
+        return player;
+    }
+
+    private static void EnsurePlayerPrefabComponents(string prefabPath)
+    {
+        GameObject prefabRoot =
+            PrefabUtility.LoadPrefabContents(prefabPath);
+
+        EnsureComponent<SpriteRenderer>(prefabRoot);
+        EnsureComponent<Rigidbody2D>(prefabRoot);
+
+        if (prefabRoot.GetComponent<Collider2D>() == null)
+        {
+            prefabRoot.AddComponent<CircleCollider2D>();
+        }
+
+        EnsureComponent<KeyboardPlayerInput>(prefabRoot);
+        EnsureComponent<GamepadPlayerInput>(prefabRoot);
+        EnsureComponent<PlayerOperateInteractor2D>(prefabRoot);
+        EnsureComponent<PlayerController>(prefabRoot);
+
+        PrefabUtility.SaveAsPrefabAsset(prefabRoot, prefabPath);
+        PrefabUtility.UnloadPrefabContents(prefabRoot);
+    }
+
+    private static void EnsureComponent<T>(GameObject target)
+        where T : Component
+    {
+        if (target.GetComponent<T>() == null)
+        {
+            target.AddComponent<T>();
+        }
+    }
+
+    private static void CreateGameplayScene(
+        string pausePanelPath,
+        string playerPrefabPath)
     {
         Scene scene =
             EditorSceneManager.OpenScene(
                 GameplayScenePath,
                 OpenSceneMode.Single
             );
+
+        RemovePreplacedPlayers();
 
         GameObject existingRoot =
             GameObject.Find("GameplayUIFlowRoot");
@@ -384,6 +511,18 @@ public static class UIFlowDemoBuilder
 
         GameplaySceneFlowController flow =
             root.AddComponent<GameplaySceneFlowController>();
+
+        GameplayPlayerSpawner spawner =
+            root.AddComponent<GameplayPlayerSpawner>();
+
+        GameObject spawnRoot =
+            ResetGameObject("GameplayPlayerSpawnRoot");
+
+        GameObject spawnedPlayersRoot =
+            ResetGameObject("SpawnedPlayers");
+
+        Transform[] spawnPoints =
+            CreateGameplaySpawnPoints(spawnRoot.transform);
 
         GameObject canvasObject =
             new GameObject(
@@ -431,8 +570,95 @@ public static class UIFlowDemoBuilder
 
         serializedFlow.ApplyModifiedPropertiesWithoutUndo();
 
+        SerializedObject serializedSpawner =
+            new SerializedObject(spawner);
+
+        serializedSpawner.FindProperty("playerPrefab")
+            .objectReferenceValue =
+                AssetDatabase.LoadAssetAtPath<GameObject>(playerPrefabPath);
+
+        serializedSpawner.FindProperty("spawnedPlayersRoot")
+            .objectReferenceValue = spawnedPlayersRoot.transform;
+
+        SerializedProperty spawnPointsProperty =
+            serializedSpawner.FindProperty("spawnPoints");
+
+        spawnPointsProperty.arraySize = spawnPoints.Length;
+
+        for (int i = 0; i < spawnPoints.Length; i++)
+        {
+            spawnPointsProperty.GetArrayElementAtIndex(i)
+                .objectReferenceValue = spawnPoints[i];
+        }
+
+        serializedSpawner.ApplyModifiedPropertiesWithoutUndo();
+
         EditorSceneManager.SaveScene(scene);
         EditorSceneManager.OpenScene(MainMenuScenePath, OpenSceneMode.Single);
+    }
+
+    private static void RemovePreplacedPlayers()
+    {
+        GameObject playersRoot =
+            GameObject.Find("Players");
+
+        if (playersRoot == null)
+        {
+            return;
+        }
+
+        for (int i = playersRoot.transform.childCount - 1; i >= 0; i--)
+        {
+            Transform child =
+                playersRoot.transform.GetChild(i);
+
+            if (child.name.StartsWith("Player"))
+            {
+                Object.DestroyImmediate(child.gameObject);
+            }
+        }
+    }
+
+    private static GameObject ResetGameObject(string name)
+    {
+        GameObject existing =
+            GameObject.Find(name);
+
+        if (existing != null)
+        {
+            Object.DestroyImmediate(existing);
+        }
+
+        return new GameObject(name);
+    }
+
+    private static Transform[] CreateGameplaySpawnPoints(Transform parent)
+    {
+        Vector3[] positions =
+        {
+            new Vector3(-1.35f, 0.8f, 0f),
+            new Vector3(1.35f, 0.8f, 0f),
+            new Vector3(-1.35f, -0.8f, 0f),
+            new Vector3(1.35f, -0.8f, 0f)
+        };
+
+        Transform[] spawnPoints =
+            new Transform[RoomInputManager.MaxPlayers];
+
+        for (int i = 0; i < spawnPoints.Length; i++)
+        {
+            GameObject spawnPoint =
+                new GameObject($"P{i + 1}SpawnPoint");
+
+            spawnPoint.transform.SetParent(parent, false);
+            spawnPoint.transform.localPosition = positions[i];
+            spawnPoint.transform.localRotation = Quaternion.identity;
+            spawnPoint.transform.localScale = Vector3.one;
+
+            spawnPoints[i] = spawnPoint.transform;
+        }
+
+        return spawnPoints;
     }
 
     private static void CreateMainCamera()

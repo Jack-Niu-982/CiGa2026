@@ -10,6 +10,8 @@
 ## 技术方案
 
 - [Technical/UIFlow.md](Technical/UIFlow.md)：MainMenu、房间界面、Gameplay、PausePanel 的界面循环方案
+- [Technical/GameplayPlayerSpawning.md](Technical/GameplayPlayerSpawning.md)：房间玩家到 Gameplay 玩家 Prefab 动态生成方案
+- [Technical/PluginAndPackageBaseline.md](Technical/PluginAndPackageBaseline.md)：Unity 插件、包版本和关键前置条件记录
 
 ## 玩法设计
 

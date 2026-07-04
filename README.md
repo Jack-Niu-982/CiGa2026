@@ -20,6 +20,8 @@ CiGa2026 是一个 Unity 多人派对游戏项目。当前核心玩法方向是 
 - [Docs/Design/RulesSummary.md](Docs/Design/RulesSummary.md)：已确认规则摘要
 - [Docs/Design/PrototypeValidation.md](Docs/Design/PrototypeValidation.md)：第一版原型验证重点
 - [Docs/Technical/UIFlow.md](Docs/Technical/UIFlow.md)：MainMenu 到 Gameplay 的界面循环技术方案
+- [Docs/Technical/GameplayPlayerSpawning.md](Docs/Technical/GameplayPlayerSpawning.md)：房间玩家到 Gameplay 玩家 Prefab 动态生成方案
+- [Docs/Technical/PluginAndPackageBaseline.md](Docs/Technical/PluginAndPackageBaseline.md)：Unity 插件、包版本和关键前置条件记录
 - [AGENTS.md](AGENTS.md)：协作和代码代理工作规则
 
 ## 当前阶段
