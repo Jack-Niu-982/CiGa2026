@@ -21,6 +21,11 @@ public enum InteractionType
     RepairStation,
 
     /// <summary>
+    /// 燃料站 - 用于投入燃料补充飞船燃料
+    /// </summary>
+    FuelStation,
+
+    /// <summary>
     /// 储物箱 - 用于存储物品
     /// </summary>
     StorageChest,

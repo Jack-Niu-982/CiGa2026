@@ -24,6 +24,16 @@ public class InteractionEffectHandler : MonoBehaviour
     [SerializeField]
     private float defenseCooldown = 1f;
 
+    [Header("燃料站效果")]
+    [Tooltip("每次投入燃料恢复的燃料量。")]
+    [Min(0f)]
+    [SerializeField]
+    private float fuelAmount = 20f;
+
+    [Tooltip("投入燃料时的粒子效果。")]
+    [SerializeField]
+    private ParticleSystem fuelParticles;
+
     [Header("修理效果")]
     [Tooltip("每次修理恢复的生命值。")]
     [SerializeField]
@@ -70,6 +80,10 @@ public class InteractionEffectHandler : MonoBehaviour
                 ExecuteRepairEffect(player);
                 break;
 
+            case InteractionType.FuelStation:
+                ExecuteFuelEffect(player);
+                break;
+
             case InteractionType.StorageChest:
                 ExecuteStorageEffect(player);
                 break;
@@ -114,6 +128,19 @@ public class InteractionEffectHandler : MonoBehaviour
         Debug.Log($"防御站：发射！造成 {defenseDamage} 伤害");
 
         // TODO: 实现射击逻辑
+    }
+
+    private void ExecuteFuelEffect(PlayerController player)
+    {
+        Debug.Log($"燃料站：投入燃料，补充 {fuelAmount} 燃料");
+
+        if (fuelParticles != null)
+        {
+            fuelParticles.Play();
+        }
+
+        // 当前尚未接入 SubmarineFuel2D，先保留事件/日志闭环。
+        // 后续燃料系统完成后在 GameplayEventBus 中接入燃料补充事件。
     }
 
     private void ExecuteRepairEffect(PlayerController player)

@@ -267,6 +267,10 @@ public class InteractableStation2D : MonoBehaviour
                 Debug.Log("修理完成！");
                 break;
 
+            case InteractionType.FuelStation:
+                Debug.Log("燃料投入完成！");
+                break;
+
             case InteractionType.StorageChest:
                 Debug.Log("打开储物箱！");
                 break;
