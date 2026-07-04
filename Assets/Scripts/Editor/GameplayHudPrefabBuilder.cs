@@ -101,8 +101,8 @@ public static class GameplayHudPrefabBuilder
         layout.childAlignment = TextAnchor.LowerCenter;
         layout.childControlWidth = true;
         layout.childControlHeight = true;
-        layout.childForceExpandWidth = true;
-        layout.childForceExpandHeight = true;
+        layout.childForceExpandWidth = false;
+        layout.childForceExpandHeight = false;
 
         GameplayPlayerStatusBarView statusBar =
             bar.AddComponent<GameplayPlayerStatusBarView>();
@@ -153,8 +153,8 @@ public static class GameplayHudPrefabBuilder
 
         layoutElement.preferredWidth = 260f;
         layoutElement.preferredHeight = 148f;
-        layoutElement.flexibleWidth = 1f;
-        layoutElement.flexibleHeight = 1f;
+        layoutElement.flexibleWidth = 0f;
+        layoutElement.flexibleHeight = 0f;
 
         VerticalLayoutGroup layout =
             slot.AddComponent<VerticalLayoutGroup>();
