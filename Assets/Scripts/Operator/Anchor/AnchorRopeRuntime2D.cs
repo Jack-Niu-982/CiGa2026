@@ -1270,6 +1270,9 @@ public class AnchorRopeRuntime2D : MonoBehaviour
 
         wallPullDelayTimer = 0f;
 
+        // 触发所有持有的漂浮物效果
+        TriggerCaughtFloatingItems();
+
         anchorTransform.SetParent(
             transform,
             true
@@ -1303,6 +1306,26 @@ public class AnchorRopeRuntime2D : MonoBehaviour
         if (lineRenderer != null)
         {
             lineRenderer.enabled = false;
+        }
+    }
+
+    private void TriggerCaughtFloatingItems()
+    {
+        if (anchorTransform == null)
+        {
+            return;
+        }
+
+        // 找到所有作为锚子对象的漂浮物
+        FloatingItem2D[] caughtItems =
+            anchorTransform.GetComponentsInChildren<FloatingItem2D>();
+
+        foreach (FloatingItem2D item in caughtItems)
+        {
+            if (item != null)
+            {
+                item.TriggerEffectOnAnchorReturn();
+            }
         }
     }
 

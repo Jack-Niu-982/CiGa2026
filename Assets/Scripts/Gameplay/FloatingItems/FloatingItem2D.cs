@@ -236,7 +236,8 @@ public class FloatingItem2D : MonoBehaviour
         Transform anchor)
     {
         if (!CanBeCaughtByAnchor ||
-            dropPoint == null)
+            dropPoint == null ||
+            anchor == null)
         {
             return false;
         }
@@ -254,12 +255,16 @@ public class FloatingItem2D : MonoBehaviour
         // 重置透明度
         SetAlpha(1f);
 
+        // 成为锚的子对象，跟随锚一起移动
+        transform.SetParent(anchor, true);
+
         SetColliderEnabled(false);
 
         if (itemRigidbody != null)
         {
             itemRigidbody.velocity = Vector2.zero;
             itemRigidbody.angularVelocity = 0f;
+            itemRigidbody.simulated = false;
         }
 
         return true;
@@ -284,43 +289,27 @@ public class FloatingItem2D : MonoBehaviour
 
     private void UpdateAnchorPull()
     {
+        // 漂浮物已成为锚的子对象，跟随锚移动
+        // 不需要自己移动，等待锚收回完成后调用 TriggerEffect
+    }
+
+    /// <summary>
+    /// 锚收回完成时调用，触发漂浮物效果并销毁。
+    /// </summary>
+    public void TriggerEffectOnAnchorReturn()
+    {
+        if (hasResolved)
+        {
+            return;
+        }
+
         if (activeDropPoint == null)
         {
             ResolveWithoutPickup();
             return;
         }
 
-        Vector2 targetPosition;
-
-        if (anchorTransform != null)
-        {
-            targetPosition = anchorTransform.position;
-        }
-        else
-        {
-            targetPosition = activeDropPoint.DropWorldPosition;
-        }
-
-        Vector2 nextPosition =
-            Vector2.MoveTowards(
-                itemRigidbody.position,
-                targetPosition,
-                anchorPullSpeed * Time.fixedDeltaTime
-            );
-
-        itemRigidbody.MovePosition(nextPosition);
-
-        // 检查是否到达下落点
-        float distanceToDropPoint =
-            Vector2.Distance(
-                nextPosition,
-                activeDropPoint.DropWorldPosition
-            );
-
-        if (distanceToDropPoint <= arrivalDistance * 3f)
-        {
-            SpawnPickupAndDestroy(activeDropPoint.DropWorldPosition);
-        }
+        SpawnPickupAndDestroy(activeDropPoint.DropWorldPosition);
     }
 
     private void SpawnPickupAndDestroy(
