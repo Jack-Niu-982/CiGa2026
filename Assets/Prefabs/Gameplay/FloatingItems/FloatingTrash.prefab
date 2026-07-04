@@ -199,11 +199,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fd81123446016c4469d52d5e4059c2cf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  itemType: 3
+  floatingItemType: 3
   pickupPrefab: {fileID: 42650793119847768, guid: 01fd17b1bf599ea46afbf88c532716bd, type: 3}
+  effectData: {fileID: 0}
   driftVelocity: {x: -0.35, y: 0}
   angularSpeed: 20
-  lifetime: 45
   canBeCaughtByAnchor: 1
   anchorPullSpeed: 5
   arrivalDistance: 0.12

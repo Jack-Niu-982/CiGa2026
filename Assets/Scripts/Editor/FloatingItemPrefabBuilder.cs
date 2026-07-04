@@ -20,6 +20,7 @@ public static class FloatingItemPrefabBuilder
     private const float PickupRootScale = 0.1f;
     private const float AnimatedItemScaleMultiplier = 0.7f;
     private const int PickupSortingOrder = 30;
+    private const string PickupLayerName = "Pickup";
 
     [MenuItem(MenuPath)]
     public static void Build()
@@ -106,6 +107,13 @@ public static class FloatingItemPrefabBuilder
         GameObject root =
             new GameObject(prefabName);
 
+        int pickupLayer = LayerMask.NameToLayer(PickupLayerName);
+
+        if (pickupLayer >= 0)
+        {
+            root.layer = pickupLayer;
+        }
+
         root.transform.position = Vector3.zero;
         root.transform.rotation = Quaternion.identity;
         root.transform.localScale =
@@ -124,8 +132,11 @@ public static class FloatingItemPrefabBuilder
 
         AddAnimator(root, idleController);
 
-        PolygonCollider2D collider =
-            AddSpriteCollider(root, sprite);
+        PolygonCollider2D physicalCollider =
+            AddSpriteCollider(root, sprite, false);
+
+        PolygonCollider2D pickupTrigger =
+            AddSpriteCollider(root, sprite, true);
 
         Rigidbody2D rigidbody =
             root.AddComponent<Rigidbody2D>();
@@ -133,15 +144,18 @@ public static class FloatingItemPrefabBuilder
         rigidbody.bodyType = RigidbodyType2D.Kinematic;
         rigidbody.gravityScale = 0f;
         rigidbody.simulated = true;
+        rigidbody.mass = 0.1f;
 
         CarryableItem2D carryable =
             root.AddComponent<CarryableItem2D>();
 
         carryable.Configure(
             itemType,
-            collider,
+            pickupTrigger,
             rigidbody
         );
+
+        physicalCollider.isTrigger = false;
 
         SerializedObject serializedCarryable =
             new SerializedObject(carryable);
@@ -183,7 +197,7 @@ public static class FloatingItemPrefabBuilder
         GameObject root =
             new GameObject(prefabName);
 
-        float itemScale = GetItemScaleMultiplier(itemType);
+        float itemScale = GetItemScaleMultiplier(floatingType);
         root.transform.localScale =
             new Vector3(itemScale, itemScale, 1f);
 
@@ -231,7 +245,7 @@ public static class FloatingItemPrefabBuilder
         }
 
         PolygonCollider2D collider =
-            AddSpriteCollider(root, spriteRenderer.sprite);
+            AddSpriteCollider(root, spriteRenderer.sprite, true);
 
         Rigidbody2D rigidbody =
             root.AddComponent<Rigidbody2D>();
@@ -284,6 +298,20 @@ public static class FloatingItemPrefabBuilder
         {
             case CarryableItemType.Fuel:
             case CarryableItemType.Shield:
+                return AnimatedItemScaleMultiplier;
+
+            default:
+                return 1f;
+        }
+    }
+
+    private static float GetItemScaleMultiplier(
+        FloatingItemType itemType)
+    {
+        switch (itemType)
+        {
+            case FloatingItemType.Fuel:
+            case FloatingItemType.Shield:
                 return AnimatedItemScaleMultiplier;
 
             default:
@@ -439,12 +467,13 @@ public static class FloatingItemPrefabBuilder
 
     private static PolygonCollider2D AddSpriteCollider(
         GameObject root,
-        Sprite sprite)
+        Sprite sprite,
+        bool isTrigger)
     {
         PolygonCollider2D collider =
             root.AddComponent<PolygonCollider2D>();
 
-        collider.isTrigger = true;
+        collider.isTrigger = isTrigger;
 
         int shapeCount = sprite.GetPhysicsShapeCount();
 

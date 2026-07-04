@@ -49,6 +49,7 @@ public class AnchorRopeRuntime2D : MonoBehaviour
     private Vector2 currentAnchorPosition;
     private Vector2 launchDirection;
     private AnchorItemDropPoint2D cachedItemDropPoint;
+    private FloatingItemAnchorTarget2D caughtFloatingTarget;
 
     private float wallPullDelayTimer;
     private bool initialized;
@@ -791,6 +792,11 @@ public class AnchorRopeRuntime2D : MonoBehaviour
         bool caught =
             floatingTarget.TryCatch(dropPoint);
 
+        if (caught)
+        {
+            caughtFloatingTarget = floatingTarget;
+        }
+
         if (caught &&
             settings != null &&
             settings.ShowDebugLog)
@@ -1299,6 +1305,12 @@ public class AnchorRopeRuntime2D : MonoBehaviour
 
         currentAnchorPosition =
             anchorPoint;
+
+        if (caughtFloatingTarget != null)
+        {
+            caughtFloatingTarget.OnAnchorRetracted();
+            caughtFloatingTarget = null;
+        }
 
         if (lineRenderer != null)
         {

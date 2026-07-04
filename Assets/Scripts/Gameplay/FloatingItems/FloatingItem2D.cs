@@ -65,6 +65,49 @@ public class FloatingItem2D : MonoBehaviour
         itemRigidbody.bodyType = RigidbodyType2D.Kinematic;
         itemRigidbody.gravityScale = 0f;
         itemRigidbody.simulated = true;
+<<<<<<< Updated upstream
+=======
+
+        if (settings != null)
+        {
+            lifetime = Random.Range(
+                settings.minLifetime,
+                settings.maxLifetime
+            );
+
+            PlaySpawnAnimation(settings);
+        }
+        else
+        {
+            lifetime = 45f;
+        }
+    }
+
+    private void PlaySpawnAnimation(FloatingItemSettings settings)
+    {
+        Vector3 targetScale = transform.localScale;
+        transform.localScale = targetScale * settings.spawnStartScale;
+
+        foreach (var renderer in spriteRenderers)
+        {
+            if (renderer != null)
+            {
+                Color color = renderer.color;
+                color.a = 0f;
+                renderer.color = color;
+            }
+        }
+
+        transform.DOScale(targetScale, settings.spawnScaleDuration)
+            .SetEase(settings.spawnEase);
+
+        DOTween.To(
+            () => 0f,
+            alpha => SetAlpha(alpha),
+            1f,
+            settings.spawnFadeDuration
+        ).SetEase(Ease.InOutQuad);
+>>>>>>> Stashed changes
     }
 
     private void FixedUpdate()
@@ -121,6 +164,16 @@ public class FloatingItem2D : MonoBehaviour
         }
 
         return true;
+    }
+
+    public void OnAnchorRetracted()
+    {
+        if (!isBeingPulled || hasResolved)
+        {
+            return;
+        }
+
+        anchorTransform = null;
     }
 
     private void UpdateDrift()
@@ -209,7 +262,128 @@ public class FloatingItem2D : MonoBehaviour
         Destroy(gameObject);
     }
 
+<<<<<<< Updated upstream
     private Transform FindPickupParent()
+=======
+    private void ApplyBombEffect()
+    {
+        if (effectData == null)
+        {
+            Debug.LogWarning("FloatingItemEffectData 未配置，炸弹效果无法生效。");
+            return;
+        }
+
+        // TODO: 对船体造成伤害
+        // 需要找到船体的健康组件并应用伤害
+        Debug.Log($"炸弹爆炸！造成 {effectData.bombDamage} 点伤害");
+
+        // 发送事件通知船体受损
+        GameplayEventBus.Publish(new SubmarineHealthChangedEvent
+        {
+            DamageAmount = effectData.bombDamage,
+            Source = "Bomb"
+        });
+    }
+
+    private void ApplyWebEffect()
+    {
+        if (effectData == null)
+        {
+            Debug.LogWarning("FloatingItemEffectData 未配置，蛛网效果无法生效。");
+            return;
+        }
+
+        if (activeDropPoint == null)
+        {
+            return;
+        }
+
+        // 找到对应的锚点组件
+        AnchorLauncher2D anchor =
+            activeDropPoint.GetComponentInParent<AnchorLauncher2D>();
+
+        if (anchor != null)
+        {
+            // TODO: 在 AnchorLauncher2D 中添加 DisableForDuration 方法
+            Debug.Log($"蛛网捕获！锚点将被禁用 {effectData.webDisableDuration} 秒");
+
+            // 发送事件通知锚点被禁用
+            GameplayEventBus.Publish(new AnchorDisabledEvent
+            {
+                Anchor = anchor,
+                Duration = effectData.webDisableDuration
+            });
+        }
+    }
+
+    private void SpawnPickupItem(Vector2 worldPosition)
+    {
+        if (pickupPrefab == null)
+        {
+            return;
+        }
+
+        SubmarineInteriorFollower2D interior =
+            FindInteriorFollower();
+
+        Vector2 spawnPosition = worldPosition;
+
+        if (interior != null)
+        {
+            if (interior.TryGetRandomEmptyPickupPosition(
+                    out Vector2 randomPosition
+                ))
+            {
+                spawnPosition = randomPosition;
+            }
+        }
+
+        CarryableItem2D pickup =
+            Instantiate(
+                pickupPrefab,
+                spawnPosition,
+                Quaternion.identity
+            );
+
+        pickup.name =
+            $"{pickupPrefab.name}_{floatingItemType}_Drop";
+
+        EnablePickupPhysics(pickup);
+    }
+
+    private void EnablePickupPhysics(CarryableItem2D pickup)
+    {
+        if (pickup == null)
+        {
+            return;
+        }
+
+        int pickupLayer =
+            LayerMask.NameToLayer("Pickup");
+
+        if (pickupLayer >= 0)
+        {
+            SetLayerRecursively(
+                pickup.gameObject,
+                pickupLayer
+            );
+        }
+
+        Rigidbody2D pickupRigidbody =
+            pickup.GetComponent<Rigidbody2D>();
+
+        if (pickupRigidbody != null)
+        {
+            pickupRigidbody.bodyType = RigidbodyType2D.Dynamic;
+            pickupRigidbody.simulated = true;
+            pickupRigidbody.gravityScale = 1f;
+            pickupRigidbody.velocity = Vector2.zero;
+            pickupRigidbody.angularVelocity = 0f;
+        }
+    }
+
+    private SubmarineInteriorFollower2D FindInteriorFollower()
+>>>>>>> Stashed changes
     {
         if (activeDropPoint == null)
         {
@@ -222,19 +396,38 @@ public class FloatingItem2D : MonoBehaviour
 
         if (interior != null)
         {
-            return interior.transform;
+            return interior;
         }
 
-        Rigidbody2D parentRigidbody =
+        Rigidbody2D submarineRigidbody =
             activeDropPoint.GetComponentInParent
                 <Rigidbody2D>();
 
-        if (parentRigidbody != null)
+        if (submarineRigidbody != null)
         {
-            return parentRigidbody.transform;
+            return submarineRigidbody
+                .GetComponentInChildren
+                    <SubmarineInteriorFollower2D>(true);
         }
 
-        return activeDropPoint.transform;
+        return null;
+    }
+
+    private static void SetLayerRecursively(
+        GameObject root,
+        int layer)
+    {
+        root.layer = layer;
+
+        Transform rootTransform = root.transform;
+
+        for (int i = 0; i < rootTransform.childCount; i++)
+        {
+            SetLayerRecursively(
+                rootTransform.GetChild(i).gameObject,
+                layer
+            );
+        }
     }
 
     private void ResolveWithoutPickup()

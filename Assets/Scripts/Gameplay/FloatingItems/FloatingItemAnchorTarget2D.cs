@@ -40,4 +40,12 @@ public class FloatingItemAnchorTarget2D : MonoBehaviour
             dropPoint
         );
     }
+
+    public void OnAnchorRetracted()
+    {
+        if (floatingItem != null)
+        {
+            floatingItem.OnAnchorRetracted();
+        }
+    }
 }
