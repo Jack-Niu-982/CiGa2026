@@ -20,6 +20,7 @@ Assets/Scripts/Settings/
   ├── FloatingItemSettings.cs        # 漂浮物生成参数
   ├── AnchorSettings.cs              # 锚钩参数
   ├── GamepadSettings.cs             # 手柄输入/震动
+  ├── StationSettings.cs             # 工作站类型、需求、描边和效果数值
   └── DevSettings.cs                 # 调试开关
 
 Assets/Resources/Settings/           # SO 资产实例
@@ -27,6 +28,9 @@ Assets/Resources/Settings/           # SO 资产实例
   ├── FloatingItemSettings.asset
   ├── AnchorSettings.asset
   ├── GamepadSettings.asset
+  ├── StationSettings.asset
+  ├── FuelStationSettings.asset
+  ├── RepairStationSettings.asset
   └── DevSettings.asset
 ```
 
@@ -251,6 +255,27 @@ transform.DOScale(Vector3.one, settings.spawnScaleDuration)
 - `retractLowFrequency` (float, 默认 0.55): 收回低频
 - `retractHighFrequency` (float, 默认 0.18): 收回高频
 
+### StationSettings
+
+工作站系统的集中配置。所有工作站的站点类型、交互需求、描边高亮参数和通用效果数值都应放在这里，不应散落在 `InteractableStation2D` 或 `InteractionEffectHandler` 组件上。
+
+**字段列表：**
+- `stationType`：工作站类型，如 `FuelStation`、`RepairStation`。
+- `requirement`：交互需求，包括需要的携带物、是否消耗、交互时长和 QTE 配置。
+- `outlineMaterial`：描边材质，当前使用 `InteractableOutline.mat`。
+- `outlineFadeInDuration` / `outlineFadeOutDuration`：描边淡入淡出时间。
+- `outlineColor`：描边颜色。
+- `outlineWidth`：描边宽度。
+- `defenseDamage` / `defenseCooldown`：防御站效果数值。
+- `fuelAmount`：燃料站补充量。
+- `repairAmount`：修复站恢复量。
+- `gizmoRadius`：编辑器中显示交互范围的辅助半径。
+
+**组件边界：**
+- `InteractableStation2D` 只保留 `stationSettings`、`interactionTrigger` 和 UnityEvent。
+- `InteractionEffectHandler` 只保留粒子、生成物 prefab 和事件引用。
+- 新增或调整数值时，优先改 SO，不要在 prefab 组件上新增可配置数值。
+
 ### DevSettings
 
 开发调试配置。
@@ -319,8 +344,8 @@ transform.DOScale(Vector3.one, settings.spawnScaleDuration)
 2. **GamepadPlayerInput** → GamepadSettings
    - 震动反馈参数（已定义 SO）
    
-3. **OperateController** → OperateStationSettings（可选）
-   - 同步、偏移参数较少
+3. **InteractableStation2D / InteractionEffectHandler** → StationSettings
+   - 站点类型、交互需求、描边高亮、修复量、燃料量、防御数值
 
 ### 扩展建议
 

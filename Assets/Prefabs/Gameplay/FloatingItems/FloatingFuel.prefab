@@ -139,7 +139,7 @@ PolygonCollider2D:
   m_CallbackLayers:
     serializedVersion: 2
     m_Bits: 4294967295
-  m_IsTrigger: 1
+  m_IsTrigger: 0
   m_UsedByEffector: 0
   m_UsedByComposite: 0
   m_Offset: {x: 0, y: 0}
@@ -271,11 +271,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fd81123446016c4469d52d5e4059c2cf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  itemType: 1
+  floatingItemType: 1
   pickupPrefab: {fileID: 8272907833759643513, guid: d9af7fc7d34904544ba87388b9f4f3ad, type: 3}
+  effectData: {fileID: 0}
   driftVelocity: {x: -0.35, y: 0}
   angularSpeed: 20
-  lifetime: 45
   canBeCaughtByAnchor: 1
   anchorPullSpeed: 5
   arrivalDistance: 0.12

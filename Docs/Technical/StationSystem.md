@@ -1,5 +1,17 @@
 # 工作站系统文档
 
+## 配置规范
+
+工作站配置必须集中到 `StationSettings` ScriptableObject 中，资源放在 `Assets/Resources/Settings/`。组件上只保留场景引用和事件，不再直接填写站点类型、交互需求、描边颜色、描边宽度、燃料量、修复量、防御伤害等数值。
+
+当前已有配置：
+
+- `StationSettings.asset`：默认兜底配置。
+- `FuelStationSettings.asset`：燃料站配置，类型为 `FuelStation`，需求物品为 `Fuel`。
+- `RepairStationSettings.asset`：修复站配置，类型为 `RepairStation`，需求物品为 `Shield`。
+
+新增工作站时，先创建一份新的 `StationSettings`，再让 prefab 上的 `InteractableStation2D.stationSettings` 指向它。`InteractableStation2D` 负责触发、校验、描边显示和事件派发；`InteractionEffectHandler` 负责执行效果，但效果数值仍然从同一份 `StationSettings` 读取。`Collider2D`、粒子、音效播放源、UnityEvent 这类场景或 prefab 绑定项可以留在组件上。
+
 ## 概述
 
 工作站是船内的交互设施，玩家可以在这些设施上投入物品或执行特定操作。当前实现了**燃料站**和**修复站**两个关键工作站。

@@ -8,42 +8,15 @@ using DG.Tweening;
 [DisallowMultipleComponent]
 public class InteractableStation2D : MonoBehaviour
 {
-    [Header("交互类型")]
+    [Header("配置")]
+    [Tooltip("工作站配置。不同工作站应该指向不同的 StationSettings 资产。")]
     [SerializeField]
-    private InteractionType stationType = InteractionType.Stove;
-
-    [Header("交互需求")]
-    [SerializeField]
-    private InteractionRequirement requirement = new InteractionRequirement();
+    private StationSettings stationSettings;
 
     [Header("检测范围")]
     [Tooltip("玩家进入此范围内可以交互。")]
     [SerializeField]
     private Collider2D interactionTrigger;
-
-    [Header("视觉反馈")]
-    [Tooltip("描边材质（使用 Outline Shader）。")]
-    [SerializeField]
-    private Material outlineMaterial;
-
-    [Tooltip("描边淡入时间（秒）。")]
-    [Min(0.1f)]
-    [SerializeField]
-    private float outlineFadeInDuration = 0.3f;
-
-    [Tooltip("描边淡出时间（秒）。")]
-    [Min(0.1f)]
-    [SerializeField]
-    private float outlineFadeOutDuration = 0.2f;
-
-    [Tooltip("描边颜色。")]
-    [SerializeField]
-    private Color outlineColor = Color.yellow;
-
-    [Tooltip("描边宽度。")]
-    [Range(0f, 0.1f)]
-    [SerializeField]
-    private float outlineWidth = 0.02f;
 
     [Header("交互事件")]
     [Tooltip("玩家进入范围时触发。")]
@@ -68,8 +41,15 @@ public class InteractableStation2D : MonoBehaviour
     private bool isInteracting;
     private Tween outlineTween;
 
-    public InteractionType StationType => stationType;
-    public InteractionRequirement Requirement => requirement;
+    public StationSettings Settings => GetSettings();
+    public InteractionType StationType =>
+        Settings != null
+            ? Settings.stationType
+            : InteractionType.None;
+    public InteractionRequirement Requirement =>
+        Settings != null
+            ? Settings.requirement
+            : null;
     public bool IsPlayerNearby => isPlayerNearby;
     public bool IsInteracting => isInteracting;
 
@@ -87,7 +67,8 @@ public class InteractableStation2D : MonoBehaviour
             interactionTrigger.isTrigger = true;
         }
 
-        if (outlineMaterial != null)
+        if (Settings != null &&
+            Settings.outlineMaterial != null)
         {
             SetupOutlineMaterials();
         }
@@ -101,7 +82,10 @@ public class InteractableStation2D : MonoBehaviour
         {
             if (spriteRenderers[i] != null)
             {
-                Material instance = new Material(outlineMaterial);
+                Material instance =
+                    new Material(
+                        Settings.outlineMaterial
+                    );
                 outlineInstances[i] = instance;
 
                 Material[] mats = new Material[2];
@@ -109,7 +93,10 @@ public class InteractableStation2D : MonoBehaviour
                 mats[1] = instance;
                 spriteRenderers[i].materials = mats;
 
-                instance.SetColor("_OutlineColor", outlineColor);
+                instance.SetColor(
+                    "_OutlineColor",
+                    Settings.outlineColor
+                );
                 instance.SetFloat("_OutlineWidth", 0f);
             }
         }
@@ -170,6 +157,14 @@ public class InteractableStation2D : MonoBehaviour
 
     private bool ValidateRequirements(PlayerController player)
     {
+        InteractionRequirement requirement =
+            Requirement;
+
+        if (requirement == null)
+        {
+            return true;
+        }
+
         if (requirement.requiredItemType != CarryableItemType.Unknown)
         {
             PlayerCarryInteractor2D carryInteractor =
@@ -196,6 +191,15 @@ public class InteractableStation2D : MonoBehaviour
     {
         isInteracting = true;
         onInteractionStart?.Invoke(player);
+
+        InteractionRequirement requirement =
+            Requirement;
+
+        if (requirement == null)
+        {
+            CompleteInteraction(player, true);
+            return;
+        }
 
         if (requirement.consumeItem &&
             requirement.requiredItemType != CarryableItemType.Unknown)
@@ -233,6 +237,15 @@ public class InteractableStation2D : MonoBehaviour
 
     private void StartQTE(PlayerController player)
     {
+        InteractionRequirement requirement =
+            Requirement;
+
+        if (requirement == null)
+        {
+            CompleteInteraction(player, true);
+            return;
+        }
+
         Debug.Log($"QTE 开始！在 {requirement.qteTimeWindow} 秒内按 {requirement.qteKey}");
     }
 
@@ -253,7 +266,7 @@ public class InteractableStation2D : MonoBehaviour
 
     private void ExecuteInteractionEffect()
     {
-        switch (stationType)
+        switch (StationType)
         {
             case InteractionType.Stove:
                 Debug.Log("烹饪食物完成！");
@@ -299,8 +312,8 @@ public class InteractableStation2D : MonoBehaviour
 
         outlineTween = DOVirtual.Float(
             0f,
-            outlineWidth,
-            outlineFadeInDuration,
+            Settings != null ? Settings.outlineWidth : 0f,
+            Settings != null ? Settings.outlineFadeInDuration : 0.01f,
             value =>
             {
                 foreach (var mat in outlineInstances)
@@ -327,9 +340,9 @@ public class InteractableStation2D : MonoBehaviour
         }
 
         outlineTween = DOVirtual.Float(
-            outlineWidth,
+            Settings != null ? Settings.outlineWidth : 0f,
             0f,
-            outlineFadeOutDuration,
+            Settings != null ? Settings.outlineFadeOutDuration : 0.01f,
             value =>
             {
                 foreach (var mat in outlineInstances)
@@ -367,7 +380,22 @@ public class InteractableStation2D : MonoBehaviour
         if (interactionTrigger != null)
         {
             Gizmos.color = new Color(0f, 1f, 0f, 0.3f);
-            Gizmos.DrawWireSphere(transform.position, 1f);
+            float radius =
+                Settings != null
+                    ? Settings.gizmoRadius
+                    : 1f;
+
+            Gizmos.DrawWireSphere(transform.position, radius);
         }
+    }
+
+    private StationSettings GetSettings()
+    {
+        if (stationSettings != null)
+        {
+            return stationSettings;
+        }
+
+        return SettingManager.Station;
     }
 }

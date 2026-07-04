@@ -7,15 +7,10 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class PickupSpawner : MonoBehaviour
 {
-    [Header("拾取物 Prefabs")]
+    [Header("拾取物 Prefab")]
+    [Tooltip("统一的拾取物 Prefab，根据类型动态配置。")]
     [SerializeField]
-    private CarryableItem2D fuelPickupPrefab;
-
-    [SerializeField]
-    private CarryableItem2D shieldPickupPrefab;
-
-    [SerializeField]
-    private CarryableItem2D trashPickupPrefab;
+    private CarryableItem2D pickupPrefab;
 
     [Header("生成区域")]
     [Tooltip("生成物品的父级 Transform（可选，留空则生成在根级）。")]
@@ -73,12 +68,10 @@ public class PickupSpawner : MonoBehaviour
 
     public void SpawnPickup(CarryableItemType itemType)
     {
-        CarryableItem2D prefab = GetPrefabForType(itemType);
-
-        if (prefab == null)
+        if (pickupPrefab == null)
         {
             Debug.LogWarning(
-                $"[PickupSpawner] 没有为类型 {itemType} 配置 Prefab。"
+                "[PickupSpawner] 没有配置拾取物 Prefab。"
             );
             return;
         }
@@ -86,20 +79,22 @@ public class PickupSpawner : MonoBehaviour
         Vector3 worldPosition = GetRandomSpawnPosition();
 
         CarryableItem2D pickup = Instantiate(
-            prefab,
+            pickupPrefab,
             worldPosition,
             Quaternion.identity,
             spawnParent
         );
 
         pickup.name = $"{itemType}Pickup_Spawned";
+        pickup.SetItemType(itemType);
 
         Rigidbody2D pickupRigidbody = pickup.GetComponent<Rigidbody2D>();
         if (pickupRigidbody != null)
         {
             pickupRigidbody.bodyType = RigidbodyType2D.Dynamic;
             pickupRigidbody.simulated = true;
-            pickupRigidbody.gravityScale = 1f;
+            pickupRigidbody.gravityScale = 0.3f;
+            pickupRigidbody.drag = 0.5f;
             pickupRigidbody.velocity = Vector2.zero;
             pickupRigidbody.angularVelocity = 0f;
         }
@@ -123,24 +118,6 @@ public class PickupSpawner : MonoBehaviour
 
         Vector3 localPosition = spawnCenter + new Vector3(x, y, 0f);
         return transform.TransformPoint(localPosition);
-    }
-
-    private CarryableItem2D GetPrefabForType(CarryableItemType itemType)
-    {
-        switch (itemType)
-        {
-            case CarryableItemType.Fuel:
-                return fuelPickupPrefab;
-
-            case CarryableItemType.Shield:
-                return shieldPickupPrefab;
-
-            case CarryableItemType.Trash:
-                return trashPickupPrefab;
-
-            default:
-                return null;
-        }
     }
 
     private void OnDrawGizmosSelected()

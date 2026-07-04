@@ -13,9 +13,9 @@ public class FloatingItem2D : MonoBehaviour
     private FloatingItemType floatingItemType =
         FloatingItemType.Unknown;
 
-    [Tooltip("抵达锚位后生成的玩家可拾取物 Prefab（仅对 Fuel/Shield/Trash 有效）。")]
+    [Tooltip("抵达锚位后生成的玩家可拾取物 Prefab（统一 Prefab，根据类型动态配置）。")]
     [SerializeField]
-    private CarryableItem2D pickupPrefab;
+    private CarryableItem2D carryableItemPrefab;
 
     [Tooltip("漂浮物效果配置（炸弹伤害、蛛网禁用时长）。")]
     [SerializeField]
@@ -396,14 +396,18 @@ public class FloatingItem2D : MonoBehaviour
 
     private void SpawnPickupItem(Vector2 worldPosition)
     {
-        if (pickupPrefab == null)
+        if (carryableItemPrefab == null)
         {
+            Debug.LogWarning(
+                $"[FloatingItem2D] {name} 没有配置拾取物 Prefab。",
+                this
+            );
             return;
         }
 
         CarryableItem2D pickup =
             Instantiate(
-                pickupPrefab,
+                carryableItemPrefab,
                 worldPosition,
                 Quaternion.identity
             );
@@ -419,10 +423,31 @@ public class FloatingItem2D : MonoBehaviour
             );
         }
 
-        pickup.name =
-            $"{pickupPrefab.name}_{floatingItemType}_Drop";
+        // 根据漂浮物类型设置拾取物类型
+        CarryableItemType carryableType = ConvertToCarryableType(floatingItemType);
+        pickup.name = $"{carryableType}Pickup_FromFloating";
+        pickup.SetItemType(carryableType);
 
         EnablePickupPhysics(pickup);
+    }
+
+    private CarryableItemType ConvertToCarryableType(FloatingItemType floatingType)
+    {
+        switch (floatingType)
+        {
+            case FloatingItemType.Fuel:
+                return CarryableItemType.Fuel;
+
+            case FloatingItemType.Shield:
+                return CarryableItemType.Shield;
+
+            case FloatingItemType.Trash:
+                return CarryableItemType.Trash;
+
+            default:
+                Debug.LogWarning($"[FloatingItem2D] 无法将 {floatingType} 转换为 CarryableItemType。");
+                return CarryableItemType.Unknown;
+        }
     }
 
     private void EnablePickupPhysics(CarryableItem2D pickup)
@@ -439,9 +464,16 @@ public class FloatingItem2D : MonoBehaviour
         {
             pickupRigidbody.bodyType = RigidbodyType2D.Dynamic;
             pickupRigidbody.simulated = true;
-            pickupRigidbody.gravityScale = 1f;
+            pickupRigidbody.gravityScale = 0.3f;
+            pickupRigidbody.drag = 0.5f;
             pickupRigidbody.velocity = Vector2.zero;
             pickupRigidbody.angularVelocity = 0f;
+        }
+
+        int carryableLayer = LayerMask.NameToLayer("CarryableItem");
+        if (carryableLayer >= 0)
+        {
+            pickup.gameObject.layer = carryableLayer;
         }
     }
 
@@ -452,25 +484,40 @@ public class FloatingItem2D : MonoBehaviour
             return null;
         }
 
-        SubmarineInteriorFollower2D interior =
-            activeDropPoint.GetComponentInParent
-                <SubmarineInteriorFollower2D>();
+        // 1. 查找名为 "PickupContainer" 的容器
+        GameObject pickupContainer =
+            GameObject.Find("PickupContainer");
 
-        if (interior != null)
+        if (pickupContainer != null)
         {
-            return interior.transform;
+            return pickupContainer.transform;
         }
 
-        Rigidbody2D parentRigidbody =
-            activeDropPoint.GetComponentInParent
-                <Rigidbody2D>();
+        // 2. 查找 SubmarineInterior 层且没有 Rigidbody2D 的父对象
+        // 避免将 Dynamic Rigidbody2D 设为 Dynamic Rigidbody2D 的子对象
+        Transform parent =
+            activeDropPoint.transform;
 
-        if (parentRigidbody != null)
+        int submarineInteriorLayer =
+            LayerMask.NameToLayer(
+                "SubmarineInterior"
+            );
+
+        while (parent != null)
         {
-            return parentRigidbody.transform;
+            if (parent.gameObject.layer ==
+                    submarineInteriorLayer &&
+                parent.GetComponent<Rigidbody2D>() ==
+                    null)
+            {
+                return parent;
+            }
+
+            parent = parent.parent;
         }
 
-        return activeDropPoint.transform;
+        // 3. 不设置父对象，避免物理冲突
+        return null;
     }
 
     private void ResolveWithoutPickup()

@@ -124,8 +124,12 @@ public static class FloatingItemPrefabBuilder
 
         AddAnimator(root, idleController);
 
-        PolygonCollider2D collider =
-            AddSpriteCollider(root, sprite);
+        // 创建两个 Collider：一个用于拾取检测（Trigger），一个用于物理落地（实体）
+        PolygonCollider2D pickupTrigger =
+            AddSpriteCollider(root, sprite, isTrigger: true);
+
+        PolygonCollider2D physicsCollider =
+            AddSpriteCollider(root, sprite, isTrigger: false);
 
         Rigidbody2D rigidbody =
             root.AddComponent<Rigidbody2D>();
@@ -139,7 +143,7 @@ public static class FloatingItemPrefabBuilder
 
         carryable.Configure(
             itemType,
-            collider,
+            pickupTrigger,
             rigidbody
         );
 
@@ -230,8 +234,9 @@ public static class FloatingItemPrefabBuilder
             return;
         }
 
+        // 漂浮物不需要拾取触发器，只需要碰撞体用于锚点检测
         PolygonCollider2D collider =
-            AddSpriteCollider(root, spriteRenderer.sprite);
+            AddSpriteCollider(root, spriteRenderer.sprite, isTrigger: false);
 
         Rigidbody2D rigidbody =
             root.AddComponent<Rigidbody2D>();
@@ -439,12 +444,13 @@ public static class FloatingItemPrefabBuilder
 
     private static PolygonCollider2D AddSpriteCollider(
         GameObject root,
-        Sprite sprite)
+        Sprite sprite,
+        bool isTrigger)
     {
         PolygonCollider2D collider =
             root.AddComponent<PolygonCollider2D>();
 
-        collider.isTrigger = true;
+        collider.isTrigger = isTrigger;
 
         int shapeCount = sprite.GetPhysicsShapeCount();
 

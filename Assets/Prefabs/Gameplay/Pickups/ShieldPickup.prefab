@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 3525738619514018421}
   - component: {fileID: 8001100362250413870}
   - component: {fileID: 2727688198197138306}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: ShieldPickup
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -254,14 +254,14 @@ Rigidbody2D:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6269154954358660891}
-  m_BodyType: 1
+  m_BodyType: 0
   m_Simulated: 1
   m_UseFullKinematicContacts: 0
   m_UseAutoMass: 0
   m_Mass: 1
-  m_LinearDrag: 0
+  m_LinearDrag: 0.5
   m_AngularDrag: 0.05
-  m_GravityScale: 0
+  m_GravityScale: 0.3
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2

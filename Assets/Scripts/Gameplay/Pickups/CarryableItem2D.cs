@@ -12,11 +12,12 @@ public class CarryableItem2D : MonoBehaviour
     private CarryableItemType itemType =
         CarryableItemType.Unknown;
 
+    [Header("组件引用")]
     [SerializeField]
-    private string displayName;
+    private SpriteRenderer spriteRenderer;
 
     [SerializeField]
-    private Sprite iconSprite;
+    private Animator animator;
 
     [Header("触发器")]
     [Tooltip("用于检测玩家靠近的 2D 触发器。留空时会自动使用本物体上的 Collider2D。")]
@@ -43,13 +44,89 @@ public class CarryableItem2D : MonoBehaviour
     private PlayerCarryInteractor2D currentHolder;
 
     public CarryableItemType ItemType => itemType;
-    public string DisplayName =>
-        string.IsNullOrWhiteSpace(displayName)
-            ? GetDefaultDisplayName(itemType)
-            : displayName;
-    public Sprite IconSprite => iconSprite;
+
+    public string DisplayName
+    {
+        get
+        {
+            CarryableItemArtSettings artSettings = SettingManager.CarryableItemArt;
+            if (artSettings != null)
+            {
+                return artSettings.GetDisplayName(itemType);
+            }
+            return GetDefaultDisplayName(itemType);
+        }
+    }
+
+    public Sprite IconSprite
+    {
+        get
+        {
+            CarryableItemArtSettings artSettings = SettingManager.CarryableItemArt;
+            if (artSettings != null)
+            {
+                return artSettings.GetIconSprite(itemType);
+            }
+
+            // 回退：尝试从当前 SpriteRenderer 获取
+            if (spriteRenderer != null)
+            {
+                return spriteRenderer.sprite;
+            }
+
+            return null;
+        }
+    }
+
     public bool IsHeld => isHeld;
     public PlayerCarryInteractor2D CurrentHolder => currentHolder;
+
+    /// <summary>
+    /// 设置物品类型并应用对应的美术资源。
+    /// </summary>
+    public void SetItemType(CarryableItemType newItemType)
+    {
+        itemType = newItemType;
+        ApplyArtConfig();
+    }
+
+    private void ApplyArtConfig()
+    {
+        CarryableItemArtSettings artSettings = SettingManager.CarryableItemArt;
+
+        if (artSettings == null)
+        {
+            Debug.LogWarning(
+                $"[CarryableItem2D] {name} 无法从 SettingManager 获取 CarryableItemArt，请确保 Resources/Settings/ 下有 CarryableItemArtSettings.asset。",
+                this
+            );
+            return;
+        }
+
+        var config = artSettings.GetConfig(itemType);
+
+        if (config == null)
+        {
+            return;
+        }
+
+        // 应用 Sprite 和颜色
+        if (spriteRenderer != null)
+        {
+            if (config.sprite != null)
+            {
+                spriteRenderer.sprite = config.sprite;
+            }
+
+            spriteRenderer.color = config.color;
+        }
+
+        // 应用动画控制器
+        if (animator != null && config.animatorController != null)
+        {
+            animator.runtimeAnimatorController = config.animatorController;
+        }
+    }
 
     public void Configure(
         CarryableItemType newItemType,
@@ -82,8 +159,8 @@ public class CarryableItem2D : MonoBehaviour
 
     private void Awake()
     {
+        ApplyArtConfig();
         CacheComponents();
-        EnsureIconSprite();
     }
 
     private void OnValidate()
@@ -100,7 +177,11 @@ public class CarryableItem2D : MonoBehaviour
                 GetComponent<Rigidbody2D>();
         }
 
-        EnsureIconSprite();
+        // 在编辑器中预览美术资源
+        if (Application.isEditor && !Application.isPlaying)
+        {
+            ApplyArtConfig();
+        }
     }
 
     public bool TryPickup(
@@ -167,6 +248,35 @@ public class CarryableItem2D : MonoBehaviour
             Quaternion.identity;
 
         RestorePhysicsState();
+
+        // 确保掉落时启用物理和重力
+        if (itemRigidbody != null)
+        {
+            itemRigidbody.bodyType =
+                RigidbodyType2D.Dynamic;
+
+            itemRigidbody.simulated =
+                true;
+
+            // 如果 GravityScale 为 0，设置为默认值
+            if (Mathf.Approximately(
+                    itemRigidbody.gravityScale,
+                    0f))
+            {
+                itemRigidbody.gravityScale =
+                    0.3f;
+            }
+
+            // Unity 2022 使用 drag；Unity 6 才改名为 linearDamping。
+            if (Mathf.Approximately(
+                    itemRigidbody.drag,
+                    0f))
+            {
+                itemRigidbody.drag =
+                    0.5f;
+            }
+        }
+
         RestoreVisualState();
 
         currentHolder = null;
@@ -327,23 +437,6 @@ public class CarryableItem2D : MonoBehaviour
 
             default:
                 return string.Empty;
-        }
-    }
-
-    private void EnsureIconSprite()
-    {
-        if (iconSprite != null)
-        {
-            return;
-        }
-
-        SpriteRenderer spriteRenderer =
-            GetComponentInChildren<SpriteRenderer>(true);
-
-        if (spriteRenderer != null)
-        {
-            iconSprite =
-                spriteRenderer.sprite;
         }
     }
 }

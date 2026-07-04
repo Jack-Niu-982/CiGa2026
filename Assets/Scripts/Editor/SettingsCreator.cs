@@ -21,6 +21,7 @@ public static class SettingsCreator
         CreateFloatingItemSettings(folder);
         CreateAnchorSettings(folder);
         CreateGamepadSettings(folder);
+        CreateStationSettings(folder);
         CreateDevSettings(folder);
 
         AssetDatabase.SaveAssets();
@@ -30,30 +31,66 @@ public static class SettingsCreator
     }
 
     [MenuItem("Tools/Settings/Create Player Settings")]
+    public static void CreatePlayerSettingsMenu()
+    {
+        CreatePlayerSettings();
+    }
+
     public static void CreatePlayerSettings(string folder = "Assets/Resources/Settings")
     {
         CreateAsset<PlayerSettings>(folder, "PlayerSettings");
     }
 
     [MenuItem("Tools/Settings/Create Floating Item Settings")]
+    public static void CreateFloatingItemSettingsMenu()
+    {
+        CreateFloatingItemSettings();
+    }
+
     public static void CreateFloatingItemSettings(string folder = "Assets/Resources/Settings")
     {
         CreateAsset<FloatingItemSettings>(folder, "FloatingItemSettings");
     }
 
     [MenuItem("Tools/Settings/Create Anchor Settings")]
+    public static void CreateAnchorSettingsMenu()
+    {
+        CreateAnchorSettings();
+    }
+
     public static void CreateAnchorSettings(string folder = "Assets/Resources/Settings")
     {
         CreateAsset<AnchorSettings>(folder, "AnchorSettings");
     }
 
     [MenuItem("Tools/Settings/Create Gamepad Settings")]
+    public static void CreateGamepadSettingsMenu()
+    {
+        CreateGamepadSettings();
+    }
+
     public static void CreateGamepadSettings(string folder = "Assets/Resources/Settings")
     {
         CreateAsset<GamepadSettings>(folder, "GamepadSettings");
     }
 
+    [MenuItem("Tools/Settings/Create Station Settings")]
+    public static void CreateStationSettingsMenu()
+    {
+        CreateStationSettings();
+    }
+
+    public static void CreateStationSettings(string folder = "Assets/Resources/Settings")
+    {
+        CreateAsset<StationSettings>(folder, "StationSettings");
+    }
+
     [MenuItem("Tools/Settings/Create Dev Settings")]
+    public static void CreateDevSettingsMenu()
+    {
+        CreateDevSettings();
+    }
+
     public static void CreateDevSettings(string folder = "Assets/Resources/Settings")
     {
         CreateAsset<DevSettings>(folder, "DevSettings");

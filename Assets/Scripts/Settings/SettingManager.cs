@@ -18,14 +18,22 @@ public static class SettingManager
     public static GamepadSettings Gamepad =>
         Get(ref _gamepad, "GamepadSettings");
 
+    public static StationSettings Station =>
+        Get(ref _station, "StationSettings");
+
     public static DevSettings Dev =>
         Get(ref _dev, "DevSettings");
+
+    public static CarryableItemArtSettings CarryableItemArt =>
+        Get(ref _carryableItemArt, "CarryableItemArtSettings");
 
     private static PlayerSettings _player;
     private static FloatingItemSettings _floatingItem;
     private static AnchorSettings _anchor;
     private static GamepadSettings _gamepad;
+    private static StationSettings _station;
     private static DevSettings _dev;
+    private static CarryableItemArtSettings _carryableItemArt;
 
     [RuntimeInitializeOnLoadMethod(
         RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -35,7 +43,9 @@ public static class SettingManager
         _floatingItem = null;
         _anchor = null;
         _gamepad = null;
+        _station = null;
         _dev = null;
+        _carryableItemArt = null;
     }
 
     private static T Get<T>(ref T cached, string assetName)

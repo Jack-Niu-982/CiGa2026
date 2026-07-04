@@ -15,30 +15,12 @@ public class InteractionEffectHandler : MonoBehaviour
     [SerializeField]
     private ParticleSystem cookingParticles;
 
-    [Header("防御站效果")]
-    [Tooltip("射击伤害值。")]
-    [SerializeField]
-    private float defenseDamage = 10f;
-
-    [Tooltip("射击冷却时间（秒）。")]
-    [SerializeField]
-    private float defenseCooldown = 1f;
-
     [Header("燃料站效果")]
-    [Tooltip("每次投入燃料恢复的燃料量。")]
-    [Min(0f)]
-    [SerializeField]
-    private float fuelAmount = 20f;
-
     [Tooltip("投入燃料时的粒子效果。")]
     [SerializeField]
     private ParticleSystem fuelParticles;
 
     [Header("修理效果")]
-    [Tooltip("每次修理恢复的生命值。")]
-    [SerializeField]
-    private float repairAmount = 20f;
-
     [Tooltip("修理粒子效果。")]
     [SerializeField]
     private ParticleSystem repairParticles;
@@ -118,6 +100,16 @@ public class InteractionEffectHandler : MonoBehaviour
 
     private void ExecuteDefenseEffect(PlayerController player)
     {
+        StationSettings settings =
+            station != null
+                ? station.Settings
+                : SettingManager.Station;
+
+        float defenseCooldown =
+            settings != null
+                ? settings.defenseCooldown
+                : 1f;
+
         if (Time.time - lastDefenseTime < defenseCooldown)
         {
             Debug.Log("防御站：冷却中...");
@@ -125,6 +117,11 @@ public class InteractionEffectHandler : MonoBehaviour
         }
 
         lastDefenseTime = Time.time;
+        float defenseDamage =
+            settings != null
+                ? settings.defenseDamage
+                : 10f;
+
         Debug.Log($"防御站：发射！造成 {defenseDamage} 伤害");
 
         // TODO: 实现射击逻辑
@@ -132,6 +129,16 @@ public class InteractionEffectHandler : MonoBehaviour
 
     private void ExecuteFuelEffect(PlayerController player)
     {
+        StationSettings settings =
+            station != null
+                ? station.Settings
+                : SettingManager.Station;
+
+        float fuelAmount =
+            settings != null
+                ? settings.fuelAmount
+                : 20f;
+
         Debug.Log($"燃料站：投入燃料，补充 {fuelAmount} 燃料");
 
         if (fuelParticles != null)
@@ -145,6 +152,16 @@ public class InteractionEffectHandler : MonoBehaviour
 
     private void ExecuteRepairEffect(PlayerController player)
     {
+        StationSettings settings =
+            station != null
+                ? station.Settings
+                : SettingManager.Station;
+
+        float repairAmount =
+            settings != null
+                ? settings.repairAmount
+                : 20f;
+
         Debug.Log($"修理台：修理完成，恢复 {repairAmount} 生命值");
 
         if (repairParticles != null)

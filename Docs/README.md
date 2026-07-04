@@ -17,9 +17,15 @@
 - [Technical/CarryableItemSystem.md](Technical/CarryableItemSystem.md)：船内可拾取物跟随、玩家携带和 PickupSprite 显示系统
 - [Technical/StationSystem.md](Technical/StationSystem.md)：工作站系统（燃料站、修复站、护盾站）
 - [Technical/MissionHealthAndSettlement.md](Technical/MissionHealthAndSettlement.md)：终点、血量与胜负结算系统方案
+- [Technical/OffScreenTargetIndicator.md](Technical/OffScreenTargetIndicator.md)：屏幕外终点指示箭头使用说明
+- [Technical/UnityMCPWorkflow.md](Technical/UnityMCPWorkflow.md)：Unity-MCP 工作流程示例和最佳实践
 - [Technical/PhysicsLayerAndCollisionRules.md](Technical/PhysicsLayerAndCollisionRules.md)：Gameplay 物理层、碰撞矩阵和船舱内部阻挡约定
 - [Technical/ParallelAgentWorkflow.md](Technical/ParallelAgentWorkflow.md)：多 Agent 并行开发流程和验收规范
 - [Technical/PluginAndPackageBaseline.md](Technical/PluginAndPackageBaseline.md)：Unity 插件、包版本和关键前置条件记录
+- [Technical/PrefabDesignGuidelines.md](Technical/PrefabDesignGuidelines.md)：Prefab 设计规范（单一 Prefab + 枚举 + ArtSettings）
+- [Technical/ShipInteriorHierarchyFix.md](Technical/ShipInteriorHierarchyFix.md)：船体内部层级结构修复方案（SpawnedPlayers 父子关系）
+- [Technical/PickupPhysicsAnalysis.md](Technical/PickupPhysicsAnalysis.md)：拾取物物理问题完整分析（Dynamic Rigidbody2D 父子冲突）
+- [Technical/PickupColliderFix.md](Technical/PickupColliderFix.md)：拾取物碰撞体修复方案（缺少实体碰撞体导致穿透地板）
 
 ## 玩法设计
 
