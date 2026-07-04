@@ -90,6 +90,38 @@ public class GameplayDebugPanel : MonoBehaviour
         GUILayout.EndHorizontal();
     }
 
+    private void DrawPickupSpawnControls()
+    {
+        GUILayout.Space(8f);
+
+        GUILayout.Label(
+            "Pickup Spawner"
+        );
+
+        GUILayout.BeginHorizontal();
+
+        if (GUILayout.Button(
+                "生成随机",
+                GUILayout.Height(30f)))
+        {
+            CarryableItemType randomType =
+                (CarryableItemType)Random.Range(1, 4);
+
+            GameplayEventBus.RequestSpawnRandomPickup(
+                randomType
+            );
+        }
+
+        if (GUILayout.Button(
+                "生成全部",
+                GUILayout.Height(30f)))
+        {
+            GameplayEventBus.RequestSpawnAllPickups();
+        }
+
+        GUILayout.EndHorizontal();
+    }
+
     private void EnsureStyles()
     {
         if (titleStyle != null)
