@@ -27,6 +27,7 @@ public class GameplayDebugPanel : MonoBehaviour
         new Vector2(220f, 200f);
 
     private GUIStyle titleStyle;
+    private Vector2 scrollPosition;
 
     private void OnGUI()
     {
@@ -55,8 +56,17 @@ public class GameplayDebugPanel : MonoBehaviour
             titleStyle
         );
 
+        scrollPosition =
+            GUILayout.BeginScrollView(
+                scrollPosition,
+                false,
+                true
+            );
+
         DrawHealthTestControls();
         DrawPickupSpawnControls();
+
+        GUILayout.EndScrollView();
 
         GUILayout.EndArea();
     }
