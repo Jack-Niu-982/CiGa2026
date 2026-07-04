@@ -112,8 +112,8 @@ public class PickupSpawner : MonoBehaviour
     private Vector3 GetRandomSpawnPosition()
     {
         float x = Random.Range(
-            spawnBounds.min.x,
-            spawnBounds.max.x
+            -spawnSize.x * 0.5f,
+            spawnSize.x * 0.5f
         );
 
         float y = Random.Range(
@@ -121,7 +121,7 @@ public class PickupSpawner : MonoBehaviour
             maxSpawnHeight
         ) + dropHeightOffset;
 
-        return new Vector3(x, y, 0f);
+        return spawnCenter + new Vector3(x, y, 0f);
     }
 
     private CarryableItem2D GetPrefabForType(CarryableItemType itemType)
@@ -144,38 +144,22 @@ public class PickupSpawner : MonoBehaviour
 
     private void OnDrawGizmosSelected()
     {
-        if (!showDebugGizmos || submarineInterior == null)
+        if (!showDebugGizmos)
         {
             return;
         }
 
         Gizmos.color = new Color(0f, 1f, 0f, 0.3f);
-
-        Vector3 worldCenter = submarineInterior.transform.TransformPoint(spawnBounds.center);
-        Vector3 worldSize = new Vector3(
-            spawnBounds.size.x * submarineInterior.transform.lossyScale.x,
-            spawnBounds.size.y * submarineInterior.transform.lossyScale.y,
-            0.1f
-        );
-
-        Gizmos.DrawCube(worldCenter, worldSize);
+        Gizmos.DrawCube(spawnCenter, spawnSize);
 
         Gizmos.color = Color.yellow;
-        Vector3 minHeightPos = submarineInterior.transform.TransformPoint(
-            new Vector3(spawnBounds.min.x, minSpawnHeight, 0f)
-        );
-        Vector3 maxHeightPos = submarineInterior.transform.TransformPoint(
-            new Vector3(spawnBounds.max.x, minSpawnHeight, 0f)
-        );
-        Gizmos.DrawLine(minHeightPos, maxHeightPos);
+        Vector3 minHeightPos = spawnCenter + new Vector3(-spawnSize.x * 0.5f, minSpawnHeight, 0f);
+        Vector3 maxHeightPosLeft = spawnCenter + new Vector3(-spawnSize.x * 0.5f, maxSpawnHeight, 0f);
+        Vector3 maxHeightPosRight = spawnCenter + new Vector3(spawnSize.x * 0.5f, maxSpawnHeight, 0f);
+
+        Gizmos.DrawLine(minHeightPos, minHeightPos + new Vector3(spawnSize.x, 0f, 0f));
 
         Gizmos.color = Color.red;
-        minHeightPos = submarineInterior.transform.TransformPoint(
-            new Vector3(spawnBounds.min.x, maxSpawnHeight, 0f)
-        );
-        maxHeightPos = submarineInterior.transform.TransformPoint(
-            new Vector3(spawnBounds.max.x, maxSpawnHeight, 0f)
-        );
-        Gizmos.DrawLine(minHeightPos, maxHeightPos);
+        Gizmos.DrawLine(maxHeightPosLeft, maxHeightPosRight);
     }
 }
