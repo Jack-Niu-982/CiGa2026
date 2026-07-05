@@ -99,6 +99,10 @@ public class MainManuButtonController : MonoBehaviour
 
         isLoadingScene = true;
 
+        ButtonSelectionAudio.TryPlayFor(
+            startButton
+        );
+
         SceneManager.LoadScene(targetSceneName);
     }
 
@@ -107,6 +111,10 @@ public class MainManuButtonController : MonoBehaviour
     /// </summary>
     public void QuitGame()
     {
+        ButtonSelectionAudio.TryPlayFor(
+            quitButton
+        );
+
         Debug.Log("退出游戏。");
 
 #if UNITY_EDITOR

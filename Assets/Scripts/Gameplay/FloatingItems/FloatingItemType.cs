@@ -11,9 +11,9 @@ public enum FloatingItemType
     Fuel = 1,
 
     /// <summary>
-    /// 炸弹 - 勾回后直接对船体造成伤害
+    /// 炸药包 - 被锚收回后在船体外爆炸，不生成舱内拾取物
     /// </summary>
-    Bomb = 2,
+    Dynamite = 2,
 
     /// <summary>
     /// 垃圾 - 勾回后生成可拾取的垃圾

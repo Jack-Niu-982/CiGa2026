@@ -208,6 +208,8 @@ public class OperateController : MonoBehaviour
 
         SetInUse(true);
 
+        GameplayAudioController.PlayOperateStarted();
+
         /*
          * 开始交互时先立刻吸附一次。
          */

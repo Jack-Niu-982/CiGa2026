@@ -201,6 +201,8 @@ public class AnchorRopeRuntime2D : MonoBehaviour
     public bool TryShootAnchor()
     {
         if (!initialized ||
+            settings == null ||
+            settings.AreControlsBlocked ||
             currentState != AnchorState.Idle)
         {
             return false;
@@ -298,6 +300,8 @@ public class AnchorRopeRuntime2D : MonoBehaviour
         {
             audioFeedback.PlayLaunch();
         }
+
+        GameplayAudioController.PlayAnchorLaunched();
 
         if (settings.ShowDebugLog)
         {

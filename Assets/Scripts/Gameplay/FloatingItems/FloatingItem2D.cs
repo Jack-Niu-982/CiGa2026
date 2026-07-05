@@ -1,5 +1,6 @@
 using UnityEngine;
 using DG.Tweening;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine.Serialization;
 
@@ -20,7 +21,7 @@ public class FloatingItem2D : MonoBehaviour
     [SerializeField]
     private CarryableItem2D pickupPrefab;
 
-    [Tooltip("漂浮物效果配置（炸弹伤害、蛛网禁用时长）。")]
+    [Tooltip("漂浮物效果配置（当前用于蛛网禁用时长）。")]
     [SerializeField]
     private FloatingItemEffectData effectData;
 
@@ -55,6 +56,27 @@ public class FloatingItem2D : MonoBehaviour
     [SerializeField]
     private float roomSpawnPadding = 0.05f;
 
+    [Header("炸药包")]
+    [Tooltip("Dynamite 被收回后依次播放的爆炸帧。")]
+    [SerializeField]
+    private Sprite[] dynamiteExplosionFrames;
+
+    [Tooltip("炸药包调用船体伤害接收器时造成的伤害。")]
+    [Min(0f)]
+    [SerializeField]
+    private float dynamiteDamage = 25f;
+
+    [Tooltip("炸药包爆炸动画的每秒帧数。")]
+    [Min(1f)]
+    [SerializeField]
+    private float dynamiteExplosionFrameRate = 12f;
+
+    [Header("蛛网")]
+    [Tooltip("蛛网固定在锚上并禁用锚控制的持续时间。")]
+    [Min(0f)]
+    [SerializeField]
+    private float webDisableDuration = 5f;
+
     private Rigidbody2D itemRigidbody;
     private Collider2D[] colliders;
     private SpriteRenderer[] spriteRenderers;
@@ -68,6 +90,7 @@ public class FloatingItem2D : MonoBehaviour
     private bool isBlinking;
     private Tween spawnScaleTween;
     private Sequence blinkSequence;
+    private bool holdsAnchorControlBlock;
 
     public FloatingItemType FloatingType => floatingItemType;
     public float DisplayScale => displayScale;
@@ -249,6 +272,8 @@ public class FloatingItem2D : MonoBehaviour
 
     private void OnDestroy()
     {
+        ReleaseAnchorControlBlock();
+
         if (spawnScaleTween != null &&
             spawnScaleTween.IsActive())
         {
@@ -294,6 +319,8 @@ public class FloatingItem2D : MonoBehaviour
             itemRigidbody.velocity = Vector2.zero;
             itemRigidbody.angularVelocity = 0f;
         }
+
+        GameplayAudioController.PlayAnchorCaughtItem();
 
         return true;
     }
@@ -436,13 +463,13 @@ public class FloatingItem2D : MonoBehaviour
         // 根据漂浮物类型执行不同的效果
         switch (floatingItemType)
         {
-            case FloatingItemType.Bomb:
-                ApplyBombEffect();
-                break;
+            case FloatingItemType.Dynamite:
+                ApplyDynamiteEffect(worldPosition);
+                return;
 
             case FloatingItemType.Web:
                 ApplyWebEffect();
-                break;
+                return;
 
             case FloatingItemType.Fuel:
             case FloatingItemType.Shield:
@@ -461,54 +488,167 @@ public class FloatingItem2D : MonoBehaviour
         Destroy(gameObject);
     }
 
-    private void ApplyBombEffect()
+    private void ApplyDynamiteEffect(Vector2 worldPosition)
     {
-        if (effectData == null)
+        transform.position = worldPosition;
+        SetColliderEnabled(false);
+
+        if (itemRigidbody != null)
         {
-            Debug.LogWarning("FloatingItemEffectData 未配置，炸弹效果无法生效。");
+            itemRigidbody.velocity = Vector2.zero;
+            itemRigidbody.angularVelocity = 0f;
+            itemRigidbody.simulated = false;
+        }
+
+        SubmarineDamageReceiver2D receiver = activeDropPoint != null
+            ? activeDropPoint.GetComponentInParent<SubmarineDamageReceiver2D>()
+            : null;
+
+        if (receiver == null)
+        {
+            receiver = FindObjectOfType<SubmarineDamageReceiver2D>();
+        }
+
+        if (receiver != null)
+        {
+            receiver.TryApplyDamage(dynamiteDamage);
+        }
+        else
+        {
+            Debug.LogWarning("[FloatingItem2D] 炸药包爆炸时未找到船体伤害接收器。", this);
+        }
+
+        if (dynamiteExplosionFrames == null ||
+            dynamiteExplosionFrames.Length == 0 ||
+            spriteRenderers == null ||
+            spriteRenderers.Length == 0)
+        {
+            Destroy(gameObject);
             return;
         }
 
-        // TODO: 对船体造成伤害
-        // 需要找到船体的健康组件并应用伤害
-        Debug.Log($"炸弹爆炸！造成 {effectData.bombDamage} 点伤害");
-
-        // 发送事件通知船体受损
-        GameplayEventBus.Publish(new SubmarineHealthChangedEvent
+        if (spawnScaleTween != null && spawnScaleTween.IsActive())
         {
-            DamageAmount = effectData.bombDamage,
-            Source = "Bomb"
-        });
+            spawnScaleTween.Kill();
+        }
+
+        if (blinkSequence != null && blinkSequence.IsActive())
+        {
+            blinkSequence.Kill();
+        }
+
+        SetAlpha(1f);
+        StartCoroutine(PlayDynamiteExplosion());
+    }
+
+    private IEnumerator PlayDynamiteExplosion()
+    {
+        SpriteRenderer explosionRenderer = spriteRenderers[0];
+        float frameDuration = 1f / Mathf.Max(1f, dynamiteExplosionFrameRate);
+
+        for (int i = 0; i < dynamiteExplosionFrames.Length; i++)
+        {
+            if (explosionRenderer != null && dynamiteExplosionFrames[i] != null)
+            {
+                explosionRenderer.sprite = dynamiteExplosionFrames[i];
+            }
+
+            yield return new WaitForSeconds(frameDuration);
+        }
+
+        Destroy(gameObject);
     }
 
     private void ApplyWebEffect()
     {
-        if (effectData == null)
+        if (activeLauncher == null || anchorTransform == null)
         {
-            Debug.LogWarning("FloatingItemEffectData 未配置，蛛网效果无法生效。");
+            Debug.LogWarning("[FloatingItem2D] 蛛网回收时未找到对应锚点。", this);
+            Destroy(gameObject);
             return;
         }
 
-        if (activeDropPoint == null)
+        isBeingPulled = false;
+        transform.SetParent(anchorTransform, true);
+        transform.position = anchorTransform.position;
+        transform.rotation = anchorTransform.rotation;
+
+        SetColliderEnabled(false);
+
+        if (itemRigidbody != null)
         {
-            return;
+            itemRigidbody.velocity = Vector2.zero;
+            itemRigidbody.angularVelocity = 0f;
+            itemRigidbody.simulated = false;
         }
 
-        // 找到对应的锚点组件
-        AnchorLauncher2D anchor =
-            activeDropPoint.GetComponentInParent<AnchorLauncher2D>();
+        SetWebSortingAboveAnchor();
 
-        if (anchor != null)
+        activeLauncher.AddExternalControlBlock();
+        holdsAnchorControlBlock = true;
+
+        float duration = effectData != null
+            ? effectData.webDisableDuration
+            : webDisableDuration;
+
+        StartCoroutine(ReleaseWebAfterDelay(Mathf.Max(0f, duration)));
+    }
+
+    private void SetWebSortingAboveAnchor()
+    {
+        Renderer anchorRenderer =
+            anchorTransform.GetComponent<Renderer>();
+
+        if (anchorRenderer == null)
         {
-            // TODO: 在 AnchorLauncher2D 中添加 DisableForDuration 方法
-            Debug.Log($"蛛网捕获！锚点将被禁用 {effectData.webDisableDuration} 秒");
+            anchorRenderer =
+                anchorTransform.GetComponentInChildren<Renderer>(true);
+        }
 
-            // 发送事件通知锚点被禁用
-            GameplayEventBus.Publish(new AnchorDisabledEvent
+        int targetOrder = 1;
+        int targetSortingLayerId = 0;
+
+        if (anchorRenderer != null)
+        {
+            targetOrder = anchorRenderer.sortingOrder + 1;
+            targetSortingLayerId = anchorRenderer.sortingLayerID;
+        }
+
+        for (int i = 0; i < spriteRenderers.Length; i++)
+        {
+            if (spriteRenderers[i] == null)
             {
-                Anchor = anchor,
-                Duration = effectData.webDisableDuration
-            });
+                continue;
+            }
+
+            spriteRenderers[i].sortingLayerID = targetSortingLayerId;
+            spriteRenderers[i].sortingOrder = targetOrder;
+        }
+    }
+
+    private IEnumerator ReleaseWebAfterDelay(float duration)
+    {
+        if (duration > 0f)
+        {
+            yield return new WaitForSeconds(duration);
+        }
+
+        ReleaseAnchorControlBlock();
+        Destroy(gameObject);
+    }
+
+    private void ReleaseAnchorControlBlock()
+    {
+        if (!holdsAnchorControlBlock)
+        {
+            return;
+        }
+
+        holdsAnchorControlBlock = false;
+
+        if (activeLauncher != null)
+        {
+            activeLauncher.RemoveExternalControlBlock();
         }
     }
 
@@ -781,6 +921,21 @@ public class FloatingItem2D : MonoBehaviour
         floatingItemType = newFloatingType;
         pickupPrefab = newPickupPrefab;
         driftVelocity = newDriftVelocity;
+    }
+
+    public void ConfigureDynamite(
+        Sprite[] explosionFrames,
+        float damage,
+        float explosionFrameRate)
+    {
+        dynamiteExplosionFrames = explosionFrames;
+        dynamiteDamage = Mathf.Max(0f, damage);
+        dynamiteExplosionFrameRate = Mathf.Max(1f, explosionFrameRate);
+    }
+
+    public void ConfigureWeb(float disableDuration)
+    {
+        webDisableDuration = Mathf.Max(0f, disableDuration);
     }
 
     public void SetDriftVelocity(

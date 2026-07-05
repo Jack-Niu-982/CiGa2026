@@ -16,12 +16,14 @@
 - 漂浮物被锚命中后拉向该锚对应的掉落点。
 - Fuel 与 Shield 抵达掉落点后，在 `Rooms` 随机子 Trigger 内生成专用的 `FuelPickUpInRoom`、`ShieldPickUpInRoom`。
 - Trash 被勾回后直接删除，不在 `Rooms` 内生成 Pickup。
+- Dynamite 被勾回后停在锚位外侧，播放 12 帧爆炸动画，并通过 `SubmarineDamageReceiver2D.TryApplyDamage` 对船体造成 25 点伤害。
+- Web 被勾回后固定在对应锚头上 5 秒，显示顺序提升到锚头之上；期间该锚不能旋转、发射或手动回收，结束后蛛网自动删除并恢复控制。
 - 玩家后续用已有 `PlayerCarryInteractor2D` 拾取、放下、运输。
 
 暂未接入：
 
 - 复杂波次、权重曲线和关卡阶段。
-- 锚抓到垃圾、炸药桶、蛛网等特殊效果。
+- 其他特殊漂浮物效果。
 - 燃料节点和护盾节点的完整数值闭环。
 - 漂浮物和船体碰撞后的额外效果。
 
@@ -57,6 +59,8 @@
 - `Assets/Prefabs/Gameplay/FloatingItems/FloatingFuel.prefab`
 - `Assets/Prefabs/Gameplay/FloatingItems/FloatingShield.prefab`
 - `Assets/Prefabs/Gameplay/FloatingItems/FloatingTrash.prefab`
+- `Assets/Prefabs/Gameplay/FloatingItems/FloatingDynamite.prefab`
+- `Assets/Prefabs/Gameplay/FloatingItems/FloatingWeb.prefab`
 
 舱内可拾取物 Prefab：
 
@@ -64,7 +68,7 @@
 - `Assets/Prefabs/Gameplay/Pickups/ShieldPickUpInRoom.prefab`
 - `Assets/Prefabs/Gameplay/Pickups/TrashPickUpInRoom.prefab`
 
-燃料和护盾沿用各自 Pickup 的 Idle Animator；垃圾保持静态，不挂 Animator。
+燃料和护盾沿用各自 Pickup 的 Idle Animator；垃圾保持静态。炸药包本体使用 `Assets/res/dynamite.png`，回收后逐帧播放 `Assets/res/anim/dynamite/explosion` 下的爆炸图片，不生成舱内 Pickup。
 
 船外漂浮物和玩家拾取物分开维护。船外漂浮物负责被锚抓和拉回；玩家拾取物负责被玩家拿起、放下和交给交互节点。
 
@@ -141,7 +145,7 @@
 2. 等待生成器生成船外漂浮物。
 3. 操作任意锚命中漂浮物。
 4. 漂浮物应被拉向对应锚的 `ItemDropPoint`。
-5. Fuel/Shield 抵达后船外漂浮物消失，并在 `Rooms` 随机子 Trigger 内生成对应 Pickup；Trash 只删除船外对象。
+5. Fuel/Shield 抵达后船外漂浮物消失，并在 `Rooms` 随机子 Trigger 内生成对应 Pickup；Trash 只删除船外对象；Dynamite 在锚位播放爆炸动画并造成 25 点船体伤害；Web 固定并封锁对应锚 5 秒后自动消失。
 6. 玩家进入“玩家碰撞半径 + 0.1”的圆形范围后，按当前输入设备显示 `[E]PickUp` 或 `[West]PickUp`，按独立拾取键拾取。
 7. 拾取后玩家手边和 HUD `HeldItem` 显示物品 Sprite。
 8. 手持状态再次按拾取键可以放下。

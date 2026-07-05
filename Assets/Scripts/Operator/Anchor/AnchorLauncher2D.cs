@@ -139,10 +139,12 @@ public class AnchorLauncher2D : MonoBehaviour
     [SerializeField] private bool showDebugLog = true;
 
     private bool hasUsedExplicitPlayerBinding;
+    private int externalControlBlockCount;
 
     public AnchorDirection Direction => anchorDirection;
     public PlayerInputBase CurrentPlayerInput => currentPlayerInput;
     public bool HasPlayerInput => currentPlayerInput != null;
+    public bool AreControlsBlocked => externalControlBlockCount > 0;
 
     public bool IsAnchorActive =>
         ropeRuntime != null &&
@@ -318,6 +320,12 @@ public class AnchorLauncher2D : MonoBehaviour
     private void Update()
     {
         if (ropeRuntime == null)
+        {
+            SetCurrentInputFeedback(false);
+            return;
+        }
+
+        if (AreControlsBlocked)
         {
             SetCurrentInputFeedback(false);
             return;
@@ -841,5 +849,17 @@ public class AnchorLauncher2D : MonoBehaviour
             "键盘：Q 发射 / R 回收\n" +
             "手柄：R1 发射 / South 回收"
         );
+    }
+
+    public void AddExternalControlBlock()
+    {
+        externalControlBlockCount++;
+        SetCurrentInputFeedback(false);
+    }
+
+    public void RemoveExternalControlBlock()
+    {
+        externalControlBlockCount =
+            Mathf.Max(0, externalControlBlockCount - 1);
     }
 }

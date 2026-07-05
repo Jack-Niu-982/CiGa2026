@@ -15,11 +15,34 @@ public static class FloatingItemPrefabBuilder
     private const string ShieldSpritePath = ArtFolder + "/edited_shield_cat_paw_icon_20260704094010.png";
     private const string FuelIdleFolder = ArtFolder + "/anim/fuel/idle";
     private const string ShieldIdleFolder = ArtFolder + "/anim/shield/idle";
+    private const string DynamiteSpritePath = ArtFolder + "/dynamite.png";
+    private const string DynamiteExplosionFolder = ArtFolder + "/anim/dynamite/explosion";
+    private const string WebSpritePath = ArtFolder + "/floating_web_icon_20260704064012.png";
     private const float ArtPixelsPerUnit = 256f;
     private const float IdleAnimationFrameRate = 8f;
     private const float PickupRootScale = 0.1f;
     private const float AnimatedItemScaleMultiplier = 0.7f;
     private const int PickupSortingOrder = 30;
+
+    [MenuItem("CiGa2026/Build Dynamite Floating Item Prefab")]
+    public static void BuildDynamite()
+    {
+        EnsureFolder(FloatingPrefabFolder);
+        BuildDynamiteFloatingItem();
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+        Debug.Log("[FloatingItemPrefabBuilder] FloatingDynamite prefab generated.");
+    }
+
+    [MenuItem("CiGa2026/Build Web Floating Item Prefab")]
+    public static void BuildWeb()
+    {
+        EnsureFolder(FloatingPrefabFolder);
+        BuildWebFloatingItem();
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+        Debug.Log("[FloatingItemPrefabBuilder] FloatingWeb prefab generated.");
+    }
 
     [MenuItem(MenuPath)]
     public static void Build()
@@ -254,6 +277,103 @@ public static class FloatingItemPrefabBuilder
         string prefabPath =
             $"{FloatingPrefabFolder}/{prefabName}.prefab";
 
+        PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
+        UnityEngine.Object.DestroyImmediate(root);
+    }
+
+    private static void BuildDynamiteFloatingItem()
+    {
+        Sprite dynamiteSprite = PrepareSprite(DynamiteSpritePath);
+        Sprite[] explosionFrames = AssetDatabase
+            .FindAssets("t:Texture2D", new[] { DynamiteExplosionFolder })
+            .Select(AssetDatabase.GUIDToAssetPath)
+            .Where(path => path.EndsWith(".png"))
+            .OrderBy(path => path)
+            .Select(PrepareSprite)
+            .Where(sprite => sprite != null)
+            .ToArray();
+
+        if (dynamiteSprite == null || explosionFrames.Length == 0)
+        {
+            Debug.LogError("[FloatingItemPrefabBuilder] Dynamite sprite or explosion frames are missing.");
+            return;
+        }
+
+        GameObject root = new GameObject("FloatingDynamite");
+        int floatingLayer = LayerMask.NameToLayer("FloatingItem");
+
+        if (floatingLayer >= 0)
+        {
+            root.layer = floatingLayer;
+        }
+
+        SpriteRenderer spriteRenderer = root.AddComponent<SpriteRenderer>();
+        spriteRenderer.sprite = dynamiteSprite;
+        spriteRenderer.color = Color.white;
+        spriteRenderer.sortingOrder = 1;
+
+        AddSpriteCollider(root, dynamiteSprite);
+
+        Rigidbody2D rigidbody = root.AddComponent<Rigidbody2D>();
+        rigidbody.bodyType = RigidbodyType2D.Kinematic;
+        rigidbody.gravityScale = 0f;
+        rigidbody.simulated = true;
+
+        FloatingItem2D floatingItem = root.AddComponent<FloatingItem2D>();
+        floatingItem.Configure(
+            FloatingItemType.Dynamite,
+            null,
+            new Vector2(-0.35f, 0f)
+        );
+        floatingItem.ConfigureDynamite(explosionFrames, 25f, 12f);
+
+        root.AddComponent<FloatingItemAnchorTarget2D>();
+
+        string prefabPath = $"{FloatingPrefabFolder}/FloatingDynamite.prefab";
+        PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
+        UnityEngine.Object.DestroyImmediate(root);
+    }
+
+    private static void BuildWebFloatingItem()
+    {
+        Sprite webSprite = PrepareSprite(WebSpritePath);
+
+        if (webSprite == null)
+        {
+            return;
+        }
+
+        GameObject root = new GameObject("FloatingWeb");
+        int floatingLayer = LayerMask.NameToLayer("FloatingItem");
+
+        if (floatingLayer >= 0)
+        {
+            root.layer = floatingLayer;
+        }
+
+        SpriteRenderer spriteRenderer = root.AddComponent<SpriteRenderer>();
+        spriteRenderer.sprite = webSprite;
+        spriteRenderer.color = Color.white;
+        spriteRenderer.sortingOrder = 1;
+
+        AddSpriteCollider(root, webSprite);
+
+        Rigidbody2D rigidbody = root.AddComponent<Rigidbody2D>();
+        rigidbody.bodyType = RigidbodyType2D.Kinematic;
+        rigidbody.gravityScale = 0f;
+        rigidbody.simulated = true;
+
+        FloatingItem2D floatingItem = root.AddComponent<FloatingItem2D>();
+        floatingItem.Configure(
+            FloatingItemType.Web,
+            null,
+            new Vector2(-0.35f, 0f)
+        );
+        floatingItem.ConfigureWeb(5f);
+
+        root.AddComponent<FloatingItemAnchorTarget2D>();
+
+        string prefabPath = $"{FloatingPrefabFolder}/FloatingWeb.prefab";
         PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
         UnityEngine.Object.DestroyImmediate(root);
     }

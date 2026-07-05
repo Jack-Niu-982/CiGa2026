@@ -87,22 +87,11 @@ public static class GameplayHudPrefabBuilder
         RectTransform rect =
             bar.GetComponent<RectTransform>();
 
-        rect.anchorMin = new Vector2(0.5f, 0f);
-        rect.anchorMax = new Vector2(0.5f, 0f);
-        rect.pivot = new Vector2(0.5f, 0f);
-        rect.anchoredPosition = new Vector2(0f, 28f);
-        rect.sizeDelta = new Vector2(1120f, 148f);
-
-        HorizontalLayoutGroup layout =
-            bar.AddComponent<HorizontalLayoutGroup>();
-
-        layout.padding = new RectOffset(0, 0, 0, 0);
-        layout.spacing = 18f;
-        layout.childAlignment = TextAnchor.LowerCenter;
-        layout.childControlWidth = true;
-        layout.childControlHeight = true;
-        layout.childForceExpandWidth = false;
-        layout.childForceExpandHeight = false;
+        rect.anchorMin = Vector2.zero;
+        rect.anchorMax = Vector2.one;
+        rect.pivot = new Vector2(0.5f, 0.5f);
+        rect.anchoredPosition = Vector2.zero;
+        rect.sizeDelta = Vector2.zero;
 
         GameplayPlayerStatusBarView statusBar =
             bar.AddComponent<GameplayPlayerStatusBarView>();
@@ -141,6 +130,10 @@ public static class GameplayHudPrefabBuilder
     {
         GameObject slot =
             CreateUIObject($"P{index + 1}StatusSlot", parent);
+
+        ConfigureStatusSlotRect(
+            slot.GetComponent<RectTransform>(),
+            index);
 
         Image background =
             slot.AddComponent<Image>();
@@ -269,6 +262,45 @@ public static class GameplayHudPrefabBuilder
         itemRoot.SetActive(false);
 
         return slotView;
+    }
+
+    private static void ConfigureStatusSlotRect(
+        RectTransform rect,
+        int index)
+    {
+        const float Margin = 28f;
+
+        Vector2 anchor;
+        Vector2 position;
+
+        switch (index)
+        {
+            case 0:
+                anchor = new Vector2(0f, 1f);
+                position = new Vector2(Margin, -Margin);
+                break;
+
+            case 1:
+                anchor = new Vector2(1f, 1f);
+                position = new Vector2(-Margin, -Margin);
+                break;
+
+            case 2:
+                anchor = new Vector2(0f, 0f);
+                position = new Vector2(Margin, Margin);
+                break;
+
+            default:
+                anchor = new Vector2(1f, 0f);
+                position = new Vector2(-Margin, Margin);
+                break;
+        }
+
+        rect.anchorMin = anchor;
+        rect.anchorMax = anchor;
+        rect.pivot = anchor;
+        rect.anchoredPosition = position;
+        rect.sizeDelta = new Vector2(260f, 148f);
     }
 
     private static Image CreateImage(

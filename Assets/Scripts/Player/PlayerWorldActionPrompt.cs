@@ -29,6 +29,8 @@ public class PlayerWorldActionPrompt : MonoBehaviour
     private readonly List<string> actionLines =
         new List<string>(2);
 
+    private bool hadActionOption;
+
     private void Awake()
     {
         ResolveReferences();
@@ -142,6 +144,17 @@ public class PlayerWorldActionPrompt : MonoBehaviour
 
         promptText.enabled =
             actionLines.Count > 0;
+
+        bool hasActionOption =
+            actionLines.Count > 0;
+
+        if (hasActionOption && !hadActionOption)
+        {
+            GameplayAudioController
+                .PlayInteractionAvailable();
+        }
+
+        hadActionOption = hasActionOption;
     }
 
     private string GetInteractKeyLabel()

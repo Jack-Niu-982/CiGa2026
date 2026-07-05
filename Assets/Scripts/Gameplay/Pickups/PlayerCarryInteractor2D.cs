@@ -249,6 +249,7 @@ public class PlayerCarryInteractor2D : MonoBehaviour
         nearbyItems.Remove(item);
         RefreshPickupSprite();
         HeldItemChanged?.Invoke(this, heldItem);
+        GameplayAudioController.PlayPlayerPickedUpItem();
     }
 
     internal void NotifyHeldItemDropped(
