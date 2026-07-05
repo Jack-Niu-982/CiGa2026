@@ -30,56 +30,31 @@ public static class SettingsCreator
     }
 
     [MenuItem("Tools/Settings/Create Player Settings")]
-    public static void CreatePlayerSettings()
-    {
-        CreatePlayerSettings("Assets/Resources/Settings");
-    }
-
-    [MenuItem("Tools/Settings/Create Floating Item Settings")]
-    public static void CreateFloatingItemSettings()
-    {
-        CreateFloatingItemSettings("Assets/Resources/Settings");
-    }
-
-    [MenuItem("Tools/Settings/Create Anchor Settings")]
-    public static void CreateAnchorSettings()
-    {
-        CreateAnchorSettings("Assets/Resources/Settings");
-    }
-
-    [MenuItem("Tools/Settings/Create Gamepad Settings")]
-    public static void CreateGamepadSettings()
-    {
-        CreateGamepadSettings("Assets/Resources/Settings");
-    }
-
-    [MenuItem("Tools/Settings/Create Dev Settings")]
-    public static void CreateDevSettings()
-    {
-        CreateDevSettings("Assets/Resources/Settings");
-    }
-
-    private static void CreatePlayerSettings(string folder)
+    public static void CreatePlayerSettings(string folder = "Assets/Resources/Settings")
     {
         CreateAsset<PlayerSettings>(folder, "PlayerSettings");
     }
 
-    private static void CreateFloatingItemSettings(string folder)
+    [MenuItem("Tools/Settings/Create Floating Item Settings")]
+    public static void CreateFloatingItemSettings(string folder = "Assets/Resources/Settings")
     {
         CreateAsset<FloatingItemSettings>(folder, "FloatingItemSettings");
     }
 
-    private static void CreateAnchorSettings(string folder)
+    [MenuItem("Tools/Settings/Create Anchor Settings")]
+    public static void CreateAnchorSettings(string folder = "Assets/Resources/Settings")
     {
         CreateAsset<AnchorSettings>(folder, "AnchorSettings");
     }
 
-    private static void CreateGamepadSettings(string folder)
+    [MenuItem("Tools/Settings/Create Gamepad Settings")]
+    public static void CreateGamepadSettings(string folder = "Assets/Resources/Settings")
     {
         CreateAsset<GamepadSettings>(folder, "GamepadSettings");
     }
 
-    private static void CreateDevSettings(string folder)
+    [MenuItem("Tools/Settings/Create Dev Settings")]
+    public static void CreateDevSettings(string folder = "Assets/Resources/Settings")
     {
         CreateAsset<DevSettings>(folder, "DevSettings");
     }

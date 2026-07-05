@@ -6,20 +6,19 @@ using UnityEngine.SceneManagement;
 [DisallowMultipleComponent]
 public class GameplaySceneFlowController : MonoBehaviour
 {
+    [Header("Scene Names")]
+    [SerializeField] private string mainMenuSceneName = "MainMenu";
+    [SerializeField] private string gameplaySceneName = "Jaeger";
+
     [Header("Panel Prefab Instance")]
     [SerializeField] private GameplayHudView gameplayHud;
     [SerializeField] private PausePanelView pausePanel;
     [SerializeField] private ConfirmDialogView backToMainMenuConfirmDialog;
-    [SerializeField] private SettlementPanelView settlementPanel;
-
-    [Header("Mission")]
-    [SerializeField] private MissionSettlementController missionSettlementController;
 
     [Header("Input")]
     [SerializeField] private bool allowAnyGamepadToPause = true;
 
     private bool isPaused;
-    private bool isSettled;
 
     private void OnEnable()
     {
@@ -43,18 +42,6 @@ public class GameplaySceneFlowController : MonoBehaviour
             backToMainMenuConfirmDialog.Cancelled += HideBackToMainMenuConfirmDialog;
             backToMainMenuConfirmDialog.Hide();
         }
-
-        if (settlementPanel != null)
-        {
-            settlementPanel.RestartClicked += Restart;
-            settlementPanel.BackToMainMenuClicked += BackToMainMenu;
-            settlementPanel.Hide();
-        }
-
-        if (missionSettlementController != null)
-        {
-            missionSettlementController.MissionSettled += HandleMissionSettled;
-        }
     }
 
     private void OnDisable()
@@ -76,22 +63,11 @@ public class GameplaySceneFlowController : MonoBehaviour
             backToMainMenuConfirmDialog.Confirmed -= BackToMainMenu;
             backToMainMenuConfirmDialog.Cancelled -= HideBackToMainMenuConfirmDialog;
         }
-
-        if (settlementPanel != null)
-        {
-            settlementPanel.RestartClicked -= Restart;
-            settlementPanel.BackToMainMenuClicked -= BackToMainMenu;
-        }
-
-        if (missionSettlementController != null)
-        {
-            missionSettlementController.MissionSettled -= HandleMissionSettled;
-        }
     }
 
     private void Update()
     {
-        if (isPaused || isSettled)
+        if (isPaused)
         {
             return;
         }
@@ -166,7 +142,7 @@ public class GameplaySceneFlowController : MonoBehaviour
     public void Restart()
     {
         Time.timeScale = 1f;
-        SceneManager.LoadScene(SettingManager.Scene.gameplay);
+        SceneManager.LoadScene(gameplaySceneName);
     }
 
     public void RequestBackToMainMenu()
@@ -186,37 +162,11 @@ public class GameplaySceneFlowController : MonoBehaviour
     public void BackToMainMenu()
     {
         Time.timeScale = 1f;
-        SceneManager.LoadScene(SettingManager.Scene.mainMenu);
+        SceneManager.LoadScene(mainMenuSceneName);
     }
 
     private void HideBackToMainMenuConfirmDialog()
     {
-        if (backToMainMenuConfirmDialog != null)
-        {
-            backToMainMenuConfirmDialog.Hide();
-        }
-    }
-
-    private void HandleMissionSettled(MissionSettlementState state)
-    {
-        isSettled = true;
-        Time.timeScale = 0f;
-
-        if (settlementPanel != null)
-        {
-            settlementPanel.Show(state);
-        }
-
-        if (gameplayHud != null)
-        {
-            gameplayHud.Show(false);
-        }
-
-        if (pausePanel != null)
-        {
-            pausePanel.Show(false);
-        }
-
         if (backToMainMenuConfirmDialog != null)
         {
             backToMainMenuConfirmDialog.Hide();

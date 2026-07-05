@@ -10,8 +10,7 @@ public class MainManuButtonController : MonoBehaviour
     [SerializeField] private Button quitButton;
 
     [Header("开始游戏后跳转的场景")]
-    [Tooltip("留空则使用 SceneSettings.chooseCharacter")]
-    [SerializeField] private string targetSceneNameOverride;
+    [SerializeField] private string targetSceneName;
 
     [Header("手柄控制")]
     [Tooltip("是否允许使用手柄按钮控制主菜单")]
@@ -71,15 +70,11 @@ public class MainManuButtonController : MonoBehaviour
     /// </summary>
     public void StartGame()
     {
+        // 防止按钮和手柄同时触发，导致场景被重复加载。
         if (isLoadingScene)
         {
             return;
         }
-
-        string targetSceneName =
-            !string.IsNullOrWhiteSpace(targetSceneNameOverride)
-                ? targetSceneNameOverride
-                : SettingManager.Scene.chooseCharacter;
 
         if (string.IsNullOrWhiteSpace(targetSceneName))
         {

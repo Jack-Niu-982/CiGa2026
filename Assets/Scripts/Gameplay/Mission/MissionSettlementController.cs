@@ -147,38 +147,10 @@ public class MissionSettlementController : MonoBehaviour
             this
         );
 
-        PublishSettlementResultEvent(currentState);
-
         MissionSettled?.Invoke(currentState);
         onMissionSettled.Invoke(currentState);
 
         return true;
-    }
-
-    private void PublishSettlementResultEvent(
-        MissionSettlementState settledState)
-    {
-        if (settledState == MissionSettlementState.Won)
-        {
-            GameplayEventBus.Publish(
-                new MissionVictoryEvent(
-                    this,
-                    settledState
-                )
-            );
-
-            return;
-        }
-
-        if (settledState == MissionSettlementState.Failed)
-        {
-            GameplayEventBus.Publish(
-                new MissionFailureEvent(
-                    this,
-                    settledState
-                )
-            );
-        }
     }
 
     private void ResolveDependencies()
