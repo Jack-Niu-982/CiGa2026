@@ -4,6 +4,9 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class GameplayPlayerSpawner : MonoBehaviour
 {
+    [Header("Startup")]
+    [SerializeField] private bool waitForLevelReady;
+
     [Header("Prefab")]
     [SerializeField] private GameObject playerPrefab;
 
@@ -21,7 +24,30 @@ public class GameplayPlayerSpawner : MonoBehaviour
 
     private void Start()
     {
+        if (waitForLevelReady)
+        {
+            return;
+        }
+
         SpawnFromCurrentSession();
+    }
+
+    private void OnEnable()
+    {
+        if (waitForLevelReady)
+        {
+            LevelRuntimeBootstrap.LevelReady +=
+                SpawnFromCurrentSession;
+        }
+    }
+
+    private void OnDisable()
+    {
+        if (waitForLevelReady)
+        {
+            LevelRuntimeBootstrap.LevelReady -=
+                SpawnFromCurrentSession;
+        }
     }
 
     public void SpawnFromCurrentSession()

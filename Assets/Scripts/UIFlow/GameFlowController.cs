@@ -15,6 +15,7 @@ public class GameFlowController : MonoBehaviour
     [Header("Panel Prefab Instances")]
     [SerializeField] private MainMenuPanelView mainMenuPanel;
     [SerializeField] private RoomPanelView roomPanel;
+    [SerializeField] private LevelEditorController levelEditor;
 
     [Header("Options")]
     [SerializeField] private bool quitReturnsToMainMenuInEditor = true;
@@ -125,6 +126,11 @@ public class GameFlowController : MonoBehaviour
             roomPanel.Show(showRoom);
         }
 
+        if (levelEditor != null)
+        {
+            levelEditor.Show(false);
+        }
+
         RefreshRoomPanel();
     }
 
@@ -154,6 +160,7 @@ public class GameFlowController : MonoBehaviour
         if (mainMenuPanel != null)
         {
             mainMenuPanel.StartClicked += EnterRoom;
+            mainMenuPanel.LevelEditorClicked += EnterLevelEditor;
             mainMenuPanel.QuitClicked += QuitGame;
         }
 
@@ -169,6 +176,11 @@ public class GameFlowController : MonoBehaviour
             roomInputManager.StartRequested += HandleInputStartRequested;
             roomInputManager.BackRequested += HandleInputBackRequested;
         }
+
+        if (levelEditor != null)
+        {
+            levelEditor.BackRequested += EnterMainMenu;
+        }
     }
 
     private void UnsubscribeEvents()
@@ -176,6 +188,7 @@ public class GameFlowController : MonoBehaviour
         if (mainMenuPanel != null)
         {
             mainMenuPanel.StartClicked -= EnterRoom;
+            mainMenuPanel.LevelEditorClicked -= EnterLevelEditor;
             mainMenuPanel.QuitClicked -= QuitGame;
         }
 
@@ -191,6 +204,11 @@ public class GameFlowController : MonoBehaviour
             roomInputManager.StartRequested -= HandleInputStartRequested;
             roomInputManager.BackRequested -= HandleInputBackRequested;
         }
+
+        if (levelEditor != null)
+        {
+            levelEditor.BackRequested -= EnterMainMenu;
+        }
     }
 
     private void HandleInputStartRequested()
@@ -202,6 +220,24 @@ public class GameFlowController : MonoBehaviour
         else if (CurrentState == GameFlowState.Room)
         {
             EnterGameplay();
+        }
+    }
+
+    private void EnterLevelEditor()
+    {
+        if (mainMenuPanel != null)
+        {
+            mainMenuPanel.Show(false);
+        }
+
+        if (roomPanel != null)
+        {
+            roomPanel.Show(false);
+        }
+
+        if (levelEditor != null)
+        {
+            levelEditor.Show(true);
         }
     }
 

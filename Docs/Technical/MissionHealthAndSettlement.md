@@ -71,9 +71,26 @@
 - 被 `FinishZone2D` 调用胜利。
 - 胜负只结算一次。
 - 结算时触发 `OnMissionSettled`，并输出明确日志。
+- 胜利时发布 `MissionVictoryEvent`，失败时发布 `MissionFailureEvent`，结算 UI 可以通过 `GameplayEventBus` 监听这两个事件分别弹出胜利或失败画面。
 - 可选冻结飞船速度，避免结算后继续漂移。
 
-第一版不直接切场景，不运行时创建整套 UI。后续的胜利/失败面板应该做成 Prefab，在 Inspector 里引用并监听结算事件。
+第一版不直接切场景，不运行时创建整套 UI。后续的胜利/失败面板应该做成 Prefab，在 Inspector 里维护画面和引用，由结算 Controller 监听 `MissionVictoryEvent`、`MissionFailureEvent` 后控制显示。
+
+监听示例：
+
+```csharp
+private void OnEnable()
+{
+    GameplayEventBus.Subscribe<MissionVictoryEvent>(HandleVictory);
+    GameplayEventBus.Subscribe<MissionFailureEvent>(HandleFailure);
+}
+
+private void OnDisable()
+{
+    GameplayEventBus.Unsubscribe<MissionVictoryEvent>(HandleVictory);
+    GameplayEventBus.Unsubscribe<MissionFailureEvent>(HandleFailure);
+}
+```
 
 ## 场景接线
 
