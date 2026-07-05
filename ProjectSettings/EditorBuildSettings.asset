@@ -9,6 +9,12 @@ EditorBuildSettings:
     path: Assets/Scenes/MainMenu.unity
     guid: e915e575caac06547ac7fa133f772e74
   - enabled: 1
+    path: Assets/Scenes/ChooseCharactor.unity
+    guid: 9176076717450d041be5881daa5b8d9d
+  - enabled: 1
     path: Assets/Scenes/Jaeger.unity
     guid: e6afaa7103586cd4e89491d4d3d086d6
+  - enabled: 1
+    path: Assets/Scenes/Zhuan.unity
+    guid: 945c18a6df9cbbb43891f54dc7af5e54
   m_configObjects: {}

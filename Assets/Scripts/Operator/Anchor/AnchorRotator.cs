@@ -315,7 +315,7 @@ public class AnchorRotator : MonoBehaviour
              */
             case AnchorLauncher2D.AnchorDirection.Up:
                 inputValue =
-                    playerInput.Horizontal;
+                    playerInput.Vertical;
 
                 rotationSign = -1f;
                 break;
@@ -329,7 +329,7 @@ public class AnchorRotator : MonoBehaviour
              */
             case AnchorLauncher2D.AnchorDirection.Down:
                 inputValue =
-                    playerInput.Horizontal;
+                    playerInput.Vertical;
 
                 rotationSign = 1f;
                 break;

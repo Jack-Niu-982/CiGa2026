@@ -11,6 +11,7 @@
 
 - [Technical/UIFlow.md](Technical/UIFlow.md)：MainMenu、房间界面、Gameplay、PausePanel 的界面循环方案
 - [Technical/GameplayPlayerSpawning.md](Technical/GameplayPlayerSpawning.md)：房间玩家到 Gameplay 玩家 Prefab 动态生成方案
+- [Technical/CharacterSelection.md](Technical/CharacterSelection.md)：手柄加入顺序、角色选择 UI 和 Gameplay 外貌映射
 - [Technical/PickupAndFloatingItems.md](Technical/PickupAndFloatingItems.md)：拾取物与漂浮物 Prefab 生成方案
 - [Technical/FloatingItems.md](Technical/FloatingItems.md)：船外漂浮物生成、锚拉回和拾取物掉落闭环
 - [Technical/FloatingItemTypes.md](Technical/FloatingItemTypes.md)：5 种漂浮物类型和效果系统（炸弹、蛛网、资源）

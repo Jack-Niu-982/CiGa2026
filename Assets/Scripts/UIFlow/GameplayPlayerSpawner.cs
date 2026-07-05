@@ -66,7 +66,8 @@ public class GameplayPlayerSpawner : MonoBehaviour
                 SlotIndex = 0,
                 DeviceId = -1,
                 DeviceIndex = -1,
-                DeviceName = "Keyboard"
+                DeviceName = "Keyboard",
+                CharacterIndex = 0
             };
 
         GameObject player =
@@ -133,7 +134,24 @@ public class GameplayPlayerSpawner : MonoBehaviour
                 player.AddComponent<GameplayPlayerIdentity>();
         }
 
-        identity.Configure(assignment.SlotIndex);
+        PlayerAnimatorControllerSelector animatorSelector =
+            player.GetComponent<PlayerAnimatorControllerSelector>();
+
+        Sprite portraitSprite = null;
+
+        if (animatorSelector != null)
+        {
+            animatorSelector.Configure(assignment.CharacterIndex);
+            portraitSprite =
+                animatorSelector.GetPortraitSprite(
+                    assignment.CharacterIndex
+                );
+        }
+
+        identity.Configure(
+            assignment.SlotIndex,
+            portraitSprite
+        );
 
         ConfigurePlayerInput(player, assignment);
         GameplayPlayerRegistry.Register(identity);

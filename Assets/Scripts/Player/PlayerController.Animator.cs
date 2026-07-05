@@ -24,15 +24,19 @@ public partial class PlayerController
 
     private void UpdateAnimator()
     {
+        UpdateFacingDirection();
+
         if (animator == null)
         {
             return;
         }
 
         float animatorHorizontalInput =
-            isOperating
-                ? 0f
-                : horizontalInput;
+            isGrounded &&
+            !isClimbing &&
+            !isOperating
+                ? horizontalInput
+                : 0f;
 
         SetAnimatorFloat(
             moveXParameter,
@@ -66,6 +70,19 @@ public partial class PlayerController
             operatingParameter,
             isOperating
         );
+    }
+
+    private void UpdateFacingDirection()
+    {
+        if (spriteRenderer == null ||
+            isOperating ||
+            Mathf.Abs(horizontalInput) < 0.01f)
+        {
+            return;
+        }
+
+        spriteRenderer.flipX =
+            horizontalInput < 0f;
     }
 
     private void SetAnimatorFloat(

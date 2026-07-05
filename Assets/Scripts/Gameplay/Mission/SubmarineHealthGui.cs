@@ -1,193 +1,125 @@
 using UnityEngine;
+using UnityEngine.UI;
 
 /// <summary>
-/// 第一版 Gameplay 血量显示。
-/// 使用 IMGUI 画在屏幕正中下方，后续正式 UI 可以再接入 UIFlow。
+/// 将船体生命值同步到一个只读 Scrollbar。
+/// 组件只更新显示比例，不修改 RectTransform，因此血条位置可在 Inspector 中自由调整。
 /// </summary>
 [DisallowMultipleComponent]
 public class SubmarineHealthGui : MonoBehaviour
 {
-    [Header("血量来源")]
+    [Header("引用")]
     [SerializeField]
     private SubmarineHealth2D health;
 
-    [Header("血条")]
     [SerializeField]
-    private bool showHealthBar = true;
-
-    [SerializeField]
-    private float healthBarWidth = 360f;
-
-    [SerializeField]
-    private float healthBarHeight = 24f;
-
-    [SerializeField]
-    private float healthBarBottomOffset = 42f;
-
-    [SerializeField]
-    private Color healthBarBackgroundColor =
-        new Color(0.05f, 0.06f, 0.08f, 0.82f);
-
-    [SerializeField]
-    private Color healthBarFrameColor =
-        new Color(1f, 1f, 1f, 0.85f);
-
-    [SerializeField]
-    private Color highHealthColor =
-        new Color(0.25f, 0.9f, 0.45f, 1f);
-
-    [SerializeField]
-    private Color mediumHealthColor =
-        new Color(1f, 0.74f, 0.22f, 1f);
-
-    [SerializeField]
-    private Color lowHealthColor =
-        new Color(1f, 0.24f, 0.2f, 1f);
-
-    private GUIStyle centeredLabelStyle;
+    private Scrollbar healthScrollbar;
 
     private void Reset()
     {
-        health =
-            FindObjectOfType<SubmarineHealth2D>();
+        healthScrollbar = GetComponent<Scrollbar>();
+        health = FindObjectOfType<SubmarineHealth2D>();
+        ConfigureScrollbar();
+        Refresh();
     }
 
     private void Awake()
     {
+        ResolveReferences();
+        ConfigureScrollbar();
+        Refresh();
+    }
+
+    private void OnEnable()
+    {
+        ResolveReferences();
+
+        if (health != null)
+        {
+            health.HealthChanged += HandleHealthChanged;
+        }
+
+        ConfigureScrollbar();
+        Refresh();
+    }
+
+    private void OnDisable()
+    {
+        if (health != null)
+        {
+            health.HealthChanged -= HandleHealthChanged;
+        }
+    }
+
+    private void OnValidate()
+    {
+        if (healthScrollbar == null)
+        {
+            healthScrollbar = GetComponent<Scrollbar>();
+        }
+
+        ConfigureScrollbar();
+
+        if (!Application.isPlaying)
+        {
+            Refresh();
+        }
+    }
+
+    private void ResolveReferences()
+    {
+        if (healthScrollbar == null)
+        {
+            healthScrollbar = GetComponent<Scrollbar>();
+        }
+
         if (health == null)
         {
-            health =
-                FindObjectOfType<SubmarineHealth2D>();
+            health = FindObjectOfType<SubmarineHealth2D>();
         }
     }
 
-    private void OnGUI()
+    private void ConfigureScrollbar()
     {
-        EnsureStyles();
-
-        if (showHealthBar)
+        if (healthScrollbar == null)
         {
-            DrawHealthBar();
+            return;
         }
 
+        healthScrollbar.interactable = false;
+        healthScrollbar.direction = Scrollbar.Direction.LeftToRight;
+        healthScrollbar.numberOfSteps = 0;
+        healthScrollbar.value = 0f;
     }
 
-    private void DrawHealthBar()
+    private void HandleHealthChanged(float currentHealth, float maxHealth)
     {
-        float width =
-            Mathf.Min(
-                healthBarWidth,
-                Screen.width - 32f
-            );
-
-        Rect frameRect =
-            new Rect(
-                (Screen.width - width) * 0.5f,
-                Screen.height -
-                    healthBarBottomOffset -
-                    healthBarHeight,
-                width,
-                healthBarHeight
-            );
-
-        Rect innerRect =
-            new Rect(
-                frameRect.x + 2f,
-                frameRect.y + 2f,
-                frameRect.width - 4f,
-                frameRect.height - 4f
-            );
-
-        float currentHealth =
-            health != null
-                ? health.CurrentHealth
-                : 0f;
-
-        float maxHealth =
-            health != null
-                ? health.MaxHealth
-                : 1f;
-
-        float healthRatio =
-            maxHealth > 0f
-                ? Mathf.Clamp01(currentHealth / maxHealth)
-                : 0f;
-
-        Rect fillRect =
-            new Rect(
-                innerRect.x,
-                innerRect.y,
-                innerRect.width * healthRatio,
-                innerRect.height
-            );
-
-        Color previousColor =
-            GUI.color;
-
-        GUI.color = healthBarFrameColor;
-        GUI.DrawTexture(
-            frameRect,
-            Texture2D.whiteTexture
-        );
-
-        GUI.color = healthBarBackgroundColor;
-        GUI.DrawTexture(
-            innerRect,
-            Texture2D.whiteTexture
-        );
-
-        GUI.color =
-            GetHealthColor(healthRatio);
-
-        GUI.DrawTexture(
-            fillRect,
-            Texture2D.whiteTexture
-        );
-
-        GUI.color = Color.white;
-        GUI.Label(
-            frameRect,
-            $"HP {currentHealth:0}/{maxHealth:0}",
-            centeredLabelStyle
-        );
-
-        GUI.color =
-            previousColor;
+        SetHealthRatio(currentHealth, maxHealth);
     }
 
-    private Color GetHealthColor(
-        float healthRatio)
+    private void Refresh()
     {
-        if (healthRatio <= 0.3f)
+        if (health == null)
         {
-            return lowHealthColor;
+            SetHealthRatio(0f, 1f);
+            return;
         }
 
-        if (healthRatio <= 0.6f)
-        {
-            return mediumHealthColor;
-        }
-
-        return highHealthColor;
+        SetHealthRatio(health.CurrentHealth, health.MaxHealth);
     }
 
-    private void EnsureStyles()
+    private void SetHealthRatio(float currentHealth, float maxHealth)
     {
-        if (centeredLabelStyle == null)
+        if (healthScrollbar == null)
         {
-            centeredLabelStyle =
-                new GUIStyle(GUI.skin.label)
-                {
-                    alignment =
-                        TextAnchor.MiddleCenter,
-                    fontStyle =
-                        FontStyle.Bold,
-                    normal =
-                    {
-                        textColor = Color.white
-                    }
-                };
+            return;
         }
 
+        float ratio = maxHealth > 0f
+            ? Mathf.Clamp01(currentHealth / maxHealth)
+            : 0f;
+
+        // Fill 作为 Scrollbar 内部的显示矩形；size 为 0 时会完全收起。
+        healthScrollbar.size = ratio;
     }
 }

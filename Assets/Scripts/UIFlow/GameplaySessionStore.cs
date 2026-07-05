@@ -46,6 +46,32 @@ public static class GameplaySessionStore
         }
     }
 
+    public static void SetAssignments(
+        IReadOnlyList<GameplayPlayerAssignment> newAssignments)
+    {
+        assignments.Clear();
+
+        if (newAssignments == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < newAssignments.Count; i++)
+        {
+            GameplayPlayerAssignment assignment =
+                newAssignments[i];
+
+            assignment.CharacterIndex =
+                Mathf.Clamp(
+                    assignment.CharacterIndex,
+                    0,
+                    RoomInputManager.MaxPlayers - 1
+                );
+
+            assignments.Add(assignment);
+        }
+    }
+
     public static void Clear()
     {
         assignments.Clear();

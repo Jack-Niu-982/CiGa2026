@@ -33,6 +33,9 @@ public partial class PlayerController : MonoBehaviour
 
     [SerializeField] private Animator animator;
 
+    [Tooltip("用于根据行走方向水平翻转玩家外观。")]
+    [SerializeField] private SpriteRenderer spriteRenderer;
+
     [Header("跳跃")]
     [Tooltip("放在玩家脚底的空物体。")]
     [SerializeField] private Transform groundCheck;
@@ -111,6 +114,7 @@ public partial class PlayerController : MonoBehaviour
         rb = GetComponent<Rigidbody2D>();
         bodyCollider = GetComponent<Collider2D>();
         animator = GetComponentInChildren<Animator>();
+        spriteRenderer = GetComponentInChildren<SpriteRenderer>();
         operateInteractor =
             GetComponent<PlayerOperateInteractor2D>();
     }
@@ -128,6 +132,12 @@ public partial class PlayerController : MonoBehaviour
         if (bodyCollider == null)
         {
             bodyCollider = GetComponent<Collider2D>();
+        }
+
+        if (spriteRenderer == null)
+        {
+            spriteRenderer =
+                GetComponentInChildren<SpriteRenderer>();
         }
 
         if (operateInteractor == null)
