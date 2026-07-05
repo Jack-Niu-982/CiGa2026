@@ -3358,7 +3358,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   maxFuel: 100
-  initialFuel: 50
+  initialFuel: 100
   resetToInitialFuelOnAwake: 1
   onFuelChanged:
     m_PersistentCalls:
