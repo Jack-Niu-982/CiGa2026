@@ -76,7 +76,7 @@ public partial class GamepadPlayerInput : PlayerInputBase
     [Tooltip("把手持物投入可接收装置的独立手柄按键。")]
     [SerializeField]
     private InteractButton putInButton =
-        InteractButton.West;
+        InteractButton.East;
 
     [Header("船锚按键")]
 
