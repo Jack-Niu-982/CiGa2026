@@ -19,7 +19,7 @@
 - [Technical/FuelAndDepositPoints.md](Technical/FuelAndDepositPoints.md)：Fuel 数值、HUD Scrollbar、Shield/Fuel 投入点与 PutIn 输入
 - [Technical/StationSystem.md](Technical/StationSystem.md)：工作站系统（燃料站、修复站、护盾站）
 - [Technical/MissionHealthAndSettlement.md](Technical/MissionHealthAndSettlement.md)：终点、血量与胜负结算系统方案
-- [Technical/LevelEditorAndTerrainGeneration.md](Technical/LevelEditorAndTerrainGeneration.md)：关卡编辑器、挖掘画笔和程序轮廓地形生成方案
+- [Technical/GameplayAudio.md](Technical/GameplayAudio.md)：Gameplay BGM、飞船底噪与玩法音效触发规则
 - [Technical/PhysicsLayerAndCollisionRules.md](Technical/PhysicsLayerAndCollisionRules.md)：Gameplay 物理层、碰撞矩阵和船舱内部阻挡约定
 - [Technical/ParallelAgentWorkflow.md](Technical/ParallelAgentWorkflow.md)：多 Agent 并行开发流程和验收规范
 - [Technical/PluginAndPackageBaseline.md](Technical/PluginAndPackageBaseline.md)：Unity 插件、包版本和关键前置条件记录

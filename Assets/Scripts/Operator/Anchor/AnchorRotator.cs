@@ -104,6 +104,12 @@ public class AnchorRotator : MonoBehaviour
             return;
         }
 
+        if (anchorLauncher == null ||
+            anchorLauncher.AreControlsBlocked)
+        {
+            return;
+        }
+
         /*
          * 只有对应设备正在被玩家操作时，
          * 才允许读取方向输入。

@@ -14,10 +14,6 @@ public class GameplayDebugPanel : MonoBehaviour
     [SerializeField]
     private float testRepairAmount = 10f;
 
-    [Header("结算测试")]
-    [SerializeField]
-    private MissionSettlementController missionSettlementController;
-
     [Header("面板")]
     [SerializeField]
     private bool showPanel = true;
@@ -28,7 +24,7 @@ public class GameplayDebugPanel : MonoBehaviour
 
     [SerializeField]
     private Vector2 panelSize =
-        new Vector2(220f, 280f);
+        new Vector2(220f, 200f);
 
     private GUIStyle titleStyle;
     private Vector2 scrollPosition;
@@ -69,7 +65,6 @@ public class GameplayDebugPanel : MonoBehaviour
 
         DrawHealthTestControls();
         DrawPickupSpawnControls();
-        DrawSettlementControls();
 
         GUILayout.EndScrollView();
 
@@ -132,39 +127,6 @@ public class GameplayDebugPanel : MonoBehaviour
                 GUILayout.Height(30f)))
         {
             GameplayEventBus.RequestSpawnAllPickups();
-        }
-
-        GUILayout.EndHorizontal();
-    }
-
-    private void DrawSettlementControls()
-    {
-        GUILayout.Space(8f);
-
-        GUILayout.Label(
-            "Mission Settlement"
-        );
-
-        GUILayout.BeginHorizontal();
-
-        if (GUILayout.Button(
-                "触发胜利",
-                GUILayout.Height(30f)))
-        {
-            if (missionSettlementController != null)
-            {
-                missionSettlementController.Win();
-            }
-        }
-
-        if (GUILayout.Button(
-                "触发失败",
-                GUILayout.Height(30f)))
-        {
-            if (missionSettlementController != null)
-            {
-                missionSettlementController.Fail();
-            }
         }
 
         GUILayout.EndHorizontal();

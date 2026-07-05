@@ -60,6 +60,8 @@ public class SubmarineDamageReceiver2D : MonoBehaviour
             return;
         }
 
+        GameplayAudioController.PlaySubmarineCollision();
+
         if (collision.relativeVelocity.magnitude <
             minimumRelativeSpeed)
         {

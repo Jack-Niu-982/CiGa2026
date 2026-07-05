@@ -1,13 +1,16 @@
 using System.Collections.Generic;
-using System.IO;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 
 [DisallowMultipleComponent]
+[RequireComponent(typeof(AudioSource))]
 public sealed class ChooseCharacterController : MonoBehaviour
 {
+    [Header("Scene Flow")]
+    [SerializeField] private string gameplaySceneName = "Jaeger";
+
     [Header("View")]
     [SerializeField] private ChooseCharacterCardView[] characterCards =
         new ChooseCharacterCardView[RoomInputManager.MaxPlayers];
@@ -20,6 +23,14 @@ public sealed class ChooseCharacterController : MonoBehaviour
     private float navigationThreshold = 0.65f;
     [SerializeField, Range(0f, 0.9f)]
     private float navigationReleaseThreshold = 0.30f;
+
+    [Header("Audio")]
+    [SerializeField] private AudioSource audioSource;
+    [SerializeField] private AudioClip characterChangedClip;
+    [SerializeField] private AudioClip playerJoinedClip;
+
+    [SerializeField, Range(0f, 2f)]
+    private float audioVolume = 1.1f;
 
     private readonly List<PlayerSelection> players =
         new List<PlayerSelection>(RoomInputManager.MaxPlayers);
@@ -34,6 +45,12 @@ public sealed class ChooseCharacterController : MonoBehaviour
         public int CharacterIndex;
         public bool IsConfirmed;
         public bool NavigationArmed = true;
+    }
+
+    private void Awake()
+    {
+        ResolveAudioSource();
+        ConfigureAudioSource();
     }
 
     private void Start()
@@ -123,6 +140,7 @@ public sealed class ChooseCharacterController : MonoBehaviour
         };
 
         players.Add(player);
+        PlayOneShot(playerJoinedClip);
         RefreshView();
     }
 
@@ -142,6 +160,7 @@ public sealed class ChooseCharacterController : MonoBehaviour
         }
 
         player.IsConfirmed = true;
+        PlayOneShot(playerJoinedClip);
         RefreshView();
     }
 
@@ -184,12 +203,21 @@ public sealed class ChooseCharacterController : MonoBehaviour
 
         player.NavigationArmed = false;
         int direction = horizontal > 0f ? 1 : -1;
+        int previousCharacterIndex =
+            player.CharacterIndex;
+
         player.CharacterIndex =
             FindNextAvailableCharacter(
                 player.CharacterIndex,
                 direction,
                 player
             );
+
+        if (player.CharacterIndex !=
+            previousCharacterIndex)
+        {
+            PlayOneShot(characterChangedClip);
+        }
 
         RefreshView();
     }
@@ -289,18 +317,9 @@ public sealed class ChooseCharacterController : MonoBehaviour
 
     private void EnterGameplay()
     {
-        if (!SelectedLevelStore.HasSelectedPath &&
-            !SelectedLevelStore.HasTemporaryLevel)
-        {
-            string defaultPath = Path.Combine(
-                LevelFileService.BuiltInLevelFolder,
-                "default_level" + LevelFileService.JsonExtension);
-
-            if (File.Exists(defaultPath))
-            {
-                SelectedLevelStore.SetSelectedPath(defaultPath);
-            }
-        }
+        PlayOneShotAcrossSceneLoad(
+            playerJoinedClip
+        );
 
         List<GameplayPlayerAssignment> assignments =
             new List<GameplayPlayerAssignment>(players.Count);
@@ -323,7 +342,7 @@ public sealed class ChooseCharacterController : MonoBehaviour
         }
 
         GameplaySessionStore.SetAssignments(assignments);
-        SceneManager.LoadScene(SettingManager.Scene.gameplay);
+        SceneManager.LoadScene(gameplaySceneName);
     }
 
     private void RefreshView()
@@ -454,6 +473,80 @@ public sealed class ChooseCharacterController : MonoBehaviour
         }
 
         return null;
+    }
+
+    private void PlayOneShot(AudioClip clip)
+    {
+        if (audioSource != null && clip != null)
+        {
+            audioSource.PlayOneShot(clip, audioVolume);
+        }
+    }
+
+    private void PlayOneShotAcrossSceneLoad(
+        AudioClip clip)
+    {
+        if (clip == null)
+        {
+            return;
+        }
+
+        GameObject oneShotObject =
+            new GameObject(
+                "Character Selection Audio One Shot"
+            );
+
+        DontDestroyOnLoad(oneShotObject);
+
+        AudioSource oneShotSource =
+            oneShotObject.AddComponent<AudioSource>();
+
+        oneShotSource.playOnAwake = false;
+        oneShotSource.loop = false;
+        oneShotSource.spatialBlend = 0f;
+        oneShotSource.ignoreListenerPause = true;
+        oneShotSource.PlayOneShot(clip, audioVolume);
+
+        Destroy(
+            oneShotObject,
+            Mathf.Max(
+                clip.length + 0.1f,
+                2f
+            )
+        );
+    }
+
+    private void ResolveAudioSource()
+    {
+        if (audioSource == null)
+        {
+            audioSource = GetComponent<AudioSource>();
+        }
+    }
+
+    private void ConfigureAudioSource()
+    {
+        if (audioSource == null)
+        {
+            return;
+        }
+
+        audioSource.playOnAwake = false;
+        audioSource.loop = false;
+        audioSource.spatialBlend = 0f;
+    }
+
+    private void OnValidate()
+    {
+        navigationThreshold =
+            Mathf.Clamp(navigationThreshold, 0.1f, 1f);
+
+        navigationReleaseThreshold =
+            Mathf.Clamp(navigationReleaseThreshold, 0f, 0.9f);
+
+        audioVolume = Mathf.Clamp(audioVolume, 0f, 2f);
+        ResolveAudioSource();
+        ConfigureAudioSource();
     }
 
     private static Gamepad FindGamepad(int deviceId)

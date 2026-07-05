@@ -21,19 +21,11 @@ public static class SettingManager
     public static DevSettings Dev =>
         Get(ref _dev, "DevSettings");
 
-    public static TerrainSettings Terrain =>
-        Get(ref _terrain, "TerrainSettings");
-
-    public static SceneSettings Scene =>
-        Get(ref _scene, "SceneSettings");
-
     private static PlayerSettings _player;
     private static FloatingItemSettings _floatingItem;
     private static AnchorSettings _anchor;
     private static GamepadSettings _gamepad;
     private static DevSettings _dev;
-    private static TerrainSettings _terrain;
-    private static SceneSettings _scene;
 
     [RuntimeInitializeOnLoadMethod(
         RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -44,8 +36,6 @@ public static class SettingManager
         _anchor = null;
         _gamepad = null;
         _dev = null;
-        _terrain = null;
-        _scene = null;
     }
 
     private static T Get<T>(ref T cached, string assetName)

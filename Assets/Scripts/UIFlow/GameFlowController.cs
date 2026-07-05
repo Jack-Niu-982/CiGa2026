@@ -1,4 +1,3 @@
-using System.IO;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -7,6 +6,7 @@ public class GameFlowController : MonoBehaviour
 {
     [Header("Flow")]
     [SerializeField] private GameFlowState initialState = GameFlowState.MainMenu;
+    [SerializeField] private string gameplaySceneName = "Jaeger";
 
     [Header("Runtime State")]
     [SerializeField] private RoomInputManager roomInputManager;
@@ -15,7 +15,6 @@ public class GameFlowController : MonoBehaviour
     [Header("Panel Prefab Instances")]
     [SerializeField] private MainMenuPanelView mainMenuPanel;
     [SerializeField] private RoomPanelView roomPanel;
-    [SerializeField] private LevelEditorController levelEditor;
 
     [Header("Options")]
     [SerializeField] private bool quitReturnsToMainMenuInEditor = true;
@@ -89,19 +88,6 @@ public class GameFlowController : MonoBehaviour
             return;
         }
 
-        if (!SelectedLevelStore.HasSelectedPath &&
-            !SelectedLevelStore.HasTemporaryLevel)
-        {
-            string defaultPath = Path.Combine(
-                LevelFileService.BuiltInLevelFolder,
-                "default_level" + LevelFileService.JsonExtension);
-
-            if (File.Exists(defaultPath))
-            {
-                SelectedLevelStore.SetSelectedPath(defaultPath);
-            }
-        }
-
         if (localPlayerSession != null)
         {
             localPlayerSession.CaptureFrom(roomInputManager);
@@ -109,7 +95,7 @@ public class GameFlowController : MonoBehaviour
 
         GameplaySessionStore.Capture(roomInputManager);
 
-        SceneManager.LoadScene(SettingManager.Scene.gameplay);
+        SceneManager.LoadScene(gameplaySceneName);
     }
 
     public void QuitGame()
@@ -137,11 +123,6 @@ public class GameFlowController : MonoBehaviour
         if (roomPanel != null)
         {
             roomPanel.Show(showRoom);
-        }
-
-        if (levelEditor != null)
-        {
-            levelEditor.Show(false);
         }
 
         RefreshRoomPanel();
@@ -173,7 +154,6 @@ public class GameFlowController : MonoBehaviour
         if (mainMenuPanel != null)
         {
             mainMenuPanel.StartClicked += EnterRoom;
-            mainMenuPanel.LevelEditorClicked += EnterLevelEditor;
             mainMenuPanel.QuitClicked += QuitGame;
         }
 
@@ -189,11 +169,6 @@ public class GameFlowController : MonoBehaviour
             roomInputManager.StartRequested += HandleInputStartRequested;
             roomInputManager.BackRequested += HandleInputBackRequested;
         }
-
-        if (levelEditor != null)
-        {
-            levelEditor.BackRequested += EnterMainMenu;
-        }
     }
 
     private void UnsubscribeEvents()
@@ -201,7 +176,6 @@ public class GameFlowController : MonoBehaviour
         if (mainMenuPanel != null)
         {
             mainMenuPanel.StartClicked -= EnterRoom;
-            mainMenuPanel.LevelEditorClicked -= EnterLevelEditor;
             mainMenuPanel.QuitClicked -= QuitGame;
         }
 
@@ -217,11 +191,6 @@ public class GameFlowController : MonoBehaviour
             roomInputManager.StartRequested -= HandleInputStartRequested;
             roomInputManager.BackRequested -= HandleInputBackRequested;
         }
-
-        if (levelEditor != null)
-        {
-            levelEditor.BackRequested -= EnterMainMenu;
-        }
     }
 
     private void HandleInputStartRequested()
@@ -233,24 +202,6 @@ public class GameFlowController : MonoBehaviour
         else if (CurrentState == GameFlowState.Room)
         {
             EnterGameplay();
-        }
-    }
-
-    private void EnterLevelEditor()
-    {
-        if (mainMenuPanel != null)
-        {
-            mainMenuPanel.Show(false);
-        }
-
-        if (roomPanel != null)
-        {
-            roomPanel.Show(false);
-        }
-
-        if (levelEditor != null)
-        {
-            levelEditor.Show(true);
         }
     }
 

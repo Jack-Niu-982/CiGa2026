@@ -62,6 +62,7 @@ public class SubmarineFuelReceiver2D : MonoBehaviour, ICarryItemReceiver
         // 通知玩家物品已消耗
         holder.NotifyHeldItemDropped(item);
         Destroy(item.gameObject);
+        GameplayAudioController.PlayDepositSuccess();
 
         return true;
     }

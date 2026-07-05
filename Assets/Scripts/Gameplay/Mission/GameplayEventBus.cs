@@ -121,37 +121,3 @@ public static class GameplayEventBus
         SpawnAllPickupsRequested?.Invoke();
     }
 }
-
-/// <summary>
-/// 一局 Gameplay 胜利时发布的事件。
-/// </summary>
-public readonly struct MissionVictoryEvent
-{
-    public MissionVictoryEvent(
-        MissionSettlementController source,
-        MissionSettlementState state)
-    {
-        Source = source;
-        State = state;
-    }
-
-    public MissionSettlementController Source { get; }
-    public MissionSettlementState State { get; }
-}
-
-/// <summary>
-/// 一局 Gameplay 失败时发布的事件。
-/// </summary>
-public readonly struct MissionFailureEvent
-{
-    public MissionFailureEvent(
-        MissionSettlementController source,
-        MissionSettlementState state)
-    {
-        Source = source;
-        State = state;
-    }
-
-    public MissionSettlementController Source { get; }
-    public MissionSettlementState State { get; }
-}

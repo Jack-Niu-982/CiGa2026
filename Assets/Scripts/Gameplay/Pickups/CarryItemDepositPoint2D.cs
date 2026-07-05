@@ -98,6 +98,7 @@ public class CarryItemDepositPoint2D : MonoBehaviour,
 
         holder.NotifyHeldItemDropped(item);
         Destroy(item.gameObject);
+        GameplayAudioController.PlayDepositSuccess();
         return true;
     }
 

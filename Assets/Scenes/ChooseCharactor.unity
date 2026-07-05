@@ -304,9 +304,17 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4847949992564222686, guid: 17926449057c91a4cb7552741142a3d8, type: 3}
+      propertyPath: playerJoinedClip
+      value: 
+      objectReference: {fileID: 8300000, guid: e3e28ae5358bd6742a0fdb751b76cb61, type: 3}
+    - target: {fileID: 4847949992564222686, guid: 17926449057c91a4cb7552741142a3d8, type: 3}
       propertyPath: gameplaySceneName
       value: Zhuan
       objectReference: {fileID: 0}
+    - target: {fileID: 4847949992564222686, guid: 17926449057c91a4cb7552741142a3d8, type: 3}
+      propertyPath: characterChangedClip
+      value: 
+      objectReference: {fileID: 8300000, guid: dee46171f7f1b1647b12b854275414fe, type: 3}
     - target: {fileID: 6528199347377439531, guid: 17926449057c91a4cb7552741142a3d8, type: 3}
       propertyPath: m_Name
       value: ChooseCharacterUI
