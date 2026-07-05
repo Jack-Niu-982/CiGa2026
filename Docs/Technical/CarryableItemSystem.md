@@ -4,7 +4,7 @@
 
 ## 目标
 
-- 船外漂浮物被锚拉回后，在飞船内部生成可拾取物。
+- 船外漂浮物被锚拉回后，随机选择 `Rooms` 下一个子物体，并在其 Trigger 范围内生成可拾取物。
 - 生成后的可拾取物必须跟随飞船内部参考系运动，飞船移动或旋转时，物体保持船内相对位置。
 - 玩家拾取物品后，不再把真实物体挂在玩家身上。
 - 玩家携带状态只通过玩家 Prefab 内的 `PickupSprite` 显示。
@@ -21,7 +21,8 @@
 1. `AnchorRopeRuntime2D` 找到 `FloatingItemAnchorTarget2D`。
 2. `FloatingItemAnchorTarget2D` 把锚拉回请求交给 `FloatingItem2D`。
 3. `FloatingItem2D` 关闭自身 Collider，移动到锚发射器的 `AnchorItemDropPoint2D.DropWorldPosition`。
-4. 到达后生成对应的 `CarryableItem2D` Prefab。
+4. Fuel/Shield 到达后，从 `Submarine/InsideCircle/Rooms` 的直接子物体中随机选择一个有效 Trigger。
+5. 在该 Trigger 内部留边取随机点，生成对应的 `CarryableItem2D` Prefab；Trash 到达后直接删除，不生成舱内物体。
 
 ### 2. 船内可拾取物
 
@@ -39,11 +40,13 @@
 
 玩家身上的 `PlayerCarryInteractor2D` 负责拾取逻辑。
 
-玩家按交互键时：
+玩家按独立拾取键时：
 
+- 拾取检测使用以玩家 Transform 为圆心的圆形范围，半径为玩家实体碰撞半径加 `0.1` 世界单位。
+- 范围内存在可拾取物时，玩家的 `WorldSpaceCanvas` 会读取 `PlayerController.CurrentInput`：键盘玩家显示 `[E]PickUp`，手柄玩家显示 `[West]PickUp`。配置变化后提示会同步更新。
 - 空手时拾取最近的 `CarryableItem2D`。
 - 已经携带物品时，如果没有拾取到新物品，则放下当前物品。
-- 如果手上已有物品并拾取到另一个物品，会先放下旧物品，再拾取新物品。
+- 每个玩家同时只能携带一个物品；手上已有物品时不能拾取第二件，需要先放下或消耗当前物品。
 
 `CarryableItem2D` 被拾取后：
 
@@ -55,7 +58,7 @@
 
 这样真实物体在携带期间不会参与物理，也不会在玩家身上显示。它只是作为携带数据存在，直到放下或被消耗。
 
-### 4. 玩家头顶显示
+### 4. 玩家手持显示
 
 玩家 Prefab 内有一个 `PickupSprite` 子节点。
 
@@ -64,7 +67,13 @@
 - 拾取物品时，读取 `CarryableItem2D.IconSprite` 并显示。
 - 放下或消耗物品时，把 Sprite 置空并隐藏。
 
-当前 `PickupSprite` 的显示位置在玩家头部上方，由 Prefab 内的本地坐标控制。后续调整显示高度、缩放或排序，只需要改 `Player.prefab`。
+当前 `PickupSprite` 位于玩家身体右侧的手持位置，由 Prefab 内的本地坐标控制。后续调整位置、缩放或排序，只需要改 `Player.prefab`。
+
+`GameplayHudPanel` 中每个玩家槽位的 `HeldItem/ItemIcon` 同时订阅携带状态：
+
+- 拾取后显示 `CarryableItem2D.IconSprite`。
+- 放下或消耗后清空。
+- `ItemIcon` 固定为 `38 x 38`，并启用 `Preserve Aspect`，避免物品图标被横向拉伸。
 
 ### 5. 放下与消耗
 
@@ -90,6 +99,7 @@
 - `PlayerCarryInteractor2D`
 - `PickupSprite` 子节点
 - `PickupSprite` 上的 `SpriteRenderer`
+- `WorldSpaceCanvas` 子节点及其 `PlayerWorldActionPrompt`
 
 `PickupSprite` 默认不显示，只有携带物品时才显示对应图标。
 
@@ -115,6 +125,7 @@
 
 1. 锚拉回漂浮物后，生成的可拾取物在飞船移动时保持船内相对位置。
 2. 玩家拾取后，真实拾取物不显示、不参与碰撞。
-3. 玩家头顶 `PickupSprite` 显示对应物品图标。
-4. 玩家放下后，真实拾取物在玩家放下位置恢复显示和碰撞。
-5. 消耗物品后，玩家头顶 `PickupSprite` 清空。
+3. 玩家进入“玩家半径 + 0.1”的检测范围后，只显示当前输入设备对应的 `[E]PickUp` 或 `[West]PickUp`。
+4. 玩家拾取后，手边 `PickupSprite` 和 HUD `HeldItem/ItemIcon` 显示对应物品图标。
+5. 玩家放下后，真实拾取物在玩家放下位置恢复显示和碰撞。
+6. 消耗物品后，玩家手边和 HUD 中的物品图标清空。

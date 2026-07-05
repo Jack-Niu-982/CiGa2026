@@ -42,6 +42,10 @@ public class PlayerOperateInteractor2D : MonoBehaviour
     public OperateController CurrentOperateController =>
         currentOperateController;
 
+    public bool HasInteractOption =>
+        currentOperateController != null ||
+        GetClosestAvailableController() != null;
+
     /// <summary>
     /// 当前这个玩家实际使用的输入组件。
     ///

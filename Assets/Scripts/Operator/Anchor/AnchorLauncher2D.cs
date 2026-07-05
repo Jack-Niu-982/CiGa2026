@@ -58,6 +58,14 @@ public class AnchorLauncher2D : MonoBehaviour
     [Min(0.01f)]
     [SerializeField] private float anchorRetractSpeed = 18f;
 
+    [Header("燃料消耗")]
+    [Tooltip("每次船锚成功发射消耗的 Fuel。")]
+    [Min(0f)]
+    [SerializeField] private float fuelCostPerShot = 5f;
+
+    [Tooltip("留空时自动从潜艇父级或当前场景寻找 SubmarineFuel2D。")]
+    [SerializeField] private SubmarineFuel2D fuelSystem;
+
     [Header("命中墙壁后的拉拽")]
     [Tooltip("命中墙壁后等待多久，再给潜艇一次朝锚点方向的冲量并自动收锚。")]
     [Min(0f)]
@@ -197,6 +205,9 @@ public class AnchorLauncher2D : MonoBehaviour
 
     internal float AnchorRetractSpeed =>
         anchorRetractSpeed;
+
+    internal float FuelCostPerShot =>
+        fuelCostPerShot;
 
     internal float WallHitPullDelay =>
         wallHitPullDelay;
@@ -410,6 +421,9 @@ public class AnchorLauncher2D : MonoBehaviour
                 0.01f,
                 anchorRetractSpeed
             );
+
+        fuelCostPerShot =
+            Mathf.Max(0f, fuelCostPerShot);
 
         wallHitPullDelay =
             Mathf.Max(
@@ -718,6 +732,47 @@ public class AnchorLauncher2D : MonoBehaviour
             ropeRuntime =
                 GetComponent<AnchorRopeRuntime2D>();
         }
+
+        if (fuelSystem == null)
+        {
+            fuelSystem =
+                GetComponentInParent<SubmarineFuel2D>();
+
+            if (fuelSystem == null)
+            {
+                fuelSystem =
+                    FindObjectOfType<SubmarineFuel2D>();
+            }
+        }
+    }
+
+    internal bool TryConsumeFuelForShot()
+    {
+        if (fuelCostPerShot <= 0f)
+        {
+            return true;
+        }
+
+        if (fuelSystem == null)
+        {
+            FindReferences();
+        }
+
+        if (fuelSystem == null ||
+            !fuelSystem.ConsumeFuel(fuelCostPerShot))
+        {
+            if (showDebugLog)
+            {
+                Debug.LogWarning(
+                    $"[AnchorLauncher2D] {gameObject.name} Fuel 不足，" +
+                    $"发射需要 {fuelCostPerShot:F1}。"
+                );
+            }
+
+            return false;
+        }
+
+        return true;
     }
 
     private Transform FindAnchorReference()

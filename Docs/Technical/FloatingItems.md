@@ -14,7 +14,8 @@
 - 漂浮物按固定方向缓慢漂移和旋转。
 - 锚可以命中漂浮物。
 - 漂浮物被锚命中后拉向该锚对应的掉落点。
-- 抵达掉落点后，生成现有拾取系统使用的 `FuelPickup`、`ShieldPickup`、`TrashPickup`。
+- Fuel 与 Shield 抵达掉落点后，在 `Rooms` 随机子 Trigger 内生成专用的 `FuelPickUpInRoom`、`ShieldPickUpInRoom`。
+- Trash 被勾回后直接删除，不在 `Rooms` 内生成 Pickup。
 - 玩家后续用已有 `PlayerCarryInteractor2D` 拾取、放下、运输。
 
 暂未接入：
@@ -37,7 +38,9 @@
 
 - `AnchorItemDropPoint2D`
   - 挂在每个锚发射器上。
-  - 表示该锚拉回漂浮物后，在船内/锚操作点旁边生成拾取物的位置。
+  - 表示漂浮物完成回收的判定位置；实际 Pickup 生成点从 `Rooms` 子 Trigger 中随机选择。
+
+漂浮物回收完成以“锚头回到发射器的静止半径内”为准。不要直接比较锚头与 `ItemDropPoint` 的距离，因为两者在四个方向的锚 Prefab 中并不重合。
 
 - `FloatingItemSpawnZone2D`
   - 矩形生成区域。
@@ -55,13 +58,17 @@
 - `Assets/Prefabs/Gameplay/FloatingItems/FloatingShield.prefab`
 - `Assets/Prefabs/Gameplay/FloatingItems/FloatingTrash.prefab`
 
-玩家可拾取物 Prefab：
+舱内可拾取物 Prefab：
 
-- `Assets/Prefabs/Gameplay/Pickups/FuelPickup.prefab`
-- `Assets/Prefabs/Gameplay/Pickups/ShieldPickup.prefab`
-- `Assets/Prefabs/Gameplay/Pickups/TrashPickup.prefab`
+- `Assets/Prefabs/Gameplay/Pickups/FuelPickUpInRoom.prefab`
+- `Assets/Prefabs/Gameplay/Pickups/ShieldPickUpInRoom.prefab`
+- `Assets/Prefabs/Gameplay/Pickups/TrashPickUpInRoom.prefab`
+
+燃料和护盾沿用各自 Pickup 的 Idle Animator；垃圾保持静态，不挂 Animator。
 
 船外漂浮物和玩家拾取物分开维护。船外漂浮物负责被锚抓和拉回；玩家拾取物负责被玩家拿起、放下和交给交互节点。
+
+场景中的 `FloatingItemSpawner2D > Entries` 为每一种漂浮物提供独立的 `Display Scale`。Spawner 实例化物体后会把该值写给 `FloatingItem2D`；生成动画从 `Display Scale × Spawn Start Scale` 过渡到 `Display Scale`。Prefab 自身的 `FloatingItem2D > Display Scale` 仅在 Entry 数值无效时作为兜底。
 
 ## 场景配置
 
@@ -81,7 +88,7 @@
 - `AnchorItemDropPoint2D`
 - `ItemDropPoint` 子物体
 
-当前掉落点大致位于飞船内部靠近对应锚操作点的位置：
+当前回收判定点大致位于飞船内部靠近对应锚操作点的位置：
 
 - 右锚：`(1.2, 0)`
 - 左锚：`(-1.2, 0)`
@@ -134,8 +141,9 @@
 2. 等待生成器生成船外漂浮物。
 3. 操作任意锚命中漂浮物。
 4. 漂浮物应被拉向对应锚的 `ItemDropPoint`。
-5. 抵达后船外漂浮物消失，并在锚操作点旁边生成对应 Pickup。
-6. 玩家靠近 Pickup，按交互键拾取。
-7. 手持状态再次按交互键可以放下。
+5. Fuel/Shield 抵达后船外漂浮物消失，并在 `Rooms` 随机子 Trigger 内生成对应 Pickup；Trash 只删除船外对象。
+6. 玩家进入“玩家碰撞半径 + 0.1”的圆形范围后，按当前输入设备显示 `[E]PickUp` 或 `[West]PickUp`，按独立拾取键拾取。
+7. 拾取后玩家手边和 HUD `HeldItem` 显示物品 Sprite。
+8. 手持状态再次按拾取键可以放下。
 
-当前未执行 Play Mode 验收；本轮只做编辑器静态检查和编译检查。
+已完成 Play Mode 运行时验证：随机点采样、范围检测、拾取状态、玩家手持 Sprite 和 HUD 正方形图标均通过。

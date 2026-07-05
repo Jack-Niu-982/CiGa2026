@@ -19,6 +19,12 @@ public abstract class PlayerInputBase : MonoBehaviour
     public bool InteractPressed { get; protected set; }
     public bool InteractHeld { get; protected set; }
 
+    public bool PickUpPressed { get; protected set; }
+    public bool PickUpHeld { get; protected set; }
+
+    public bool PutInPressed { get; protected set; }
+    public bool PutInHeld { get; protected set; }
+
     /// <summary>
     /// 本帧是否刚按下船锚发射键。
     /// 键盘默认 Q，手柄默认 R1。
@@ -113,6 +119,26 @@ public abstract class PlayerInputBase : MonoBehaviour
 
         AnchorReelHeld =
             AnchorReelAmount > 0.01f;
+    }
+
+    protected void SetPickUpInputState(
+        bool pickUpHeld)
+    {
+        PickUpPressed =
+            pickUpHeld &&
+            !PickUpHeld;
+
+        PickUpHeld = pickUpHeld;
+    }
+
+    protected void SetPutInInputState(
+        bool putInHeld)
+    {
+        PutInPressed =
+            putInHeld &&
+            !PutInHeld;
+
+        PutInHeld = putInHeld;
     }
 
     /// <summary>
@@ -221,6 +247,9 @@ public abstract class PlayerInputBase : MonoBehaviour
             false,
             0f
         );
+
+        SetPickUpInputState(false);
+        SetPutInInputState(false);
     }
 
     protected virtual void OnDisable()

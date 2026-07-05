@@ -65,6 +65,8 @@ public class GameplayPlayerStatusSlotView : MonoBehaviour
 
         if (itemIconImage != null)
         {
+            itemIconImage.preserveAspect = true;
+
             itemIconImage.sprite =
                 hasItem ? item.IconSprite : null;
 

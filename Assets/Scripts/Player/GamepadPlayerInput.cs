@@ -12,6 +12,7 @@ using UnityEngine.InputSystem;
 ///
 /// South 可以同时作为普通交互键和船锚回收键，
 /// 具体是否触发由玩家当前状态决定。
+/// West 默认用于拾取和放下物品。
 /// </summary>
 [DefaultExecutionOrder(-100)]
 public partial class GamepadPlayerInput : PlayerInputBase
@@ -66,6 +67,16 @@ public partial class GamepadPlayerInput : PlayerInputBase
     [SerializeField]
     private InteractButton interactButton =
         InteractButton.South;
+
+    [Tooltip("拾取和放下物品的独立手柄按键。")]
+    [SerializeField]
+    private InteractButton pickUpButton =
+        InteractButton.West;
+
+    [Tooltip("把手持物投入可接收装置的独立手柄按键。")]
+    [SerializeField]
+    private InteractButton putInButton =
+        InteractButton.West;
 
     [Header("船锚按键")]
 
@@ -242,6 +253,15 @@ public partial class GamepadPlayerInput : PlayerInputBase
     public int GamepadIndex =>
         gamepadIndex;
 
+    public InteractButton InteractButtonBinding =>
+        interactButton;
+
+    public InteractButton PickUpButtonBinding =>
+        pickUpButton;
+
+    public InteractButton PutInButtonBinding =>
+        putInButton;
+
     private void Update()
     {
         Gamepad gamepad =
@@ -294,7 +314,22 @@ public partial class GamepadPlayerInput : PlayerInputBase
         }
 
         bool interactHeld =
-            IsInteractButtonPressed(gamepad);
+            IsButtonPressed(
+                gamepad,
+                interactButton
+            );
+
+        bool pickUpHeld =
+            IsButtonPressed(
+                gamepad,
+                pickUpButton
+            );
+
+        bool putInHeld =
+            IsButtonPressed(
+                gamepad,
+                putInButton
+            );
 
         bool anchorShootHeld =
             useRightShoulderToShoot &&
@@ -315,6 +350,14 @@ public partial class GamepadPlayerInput : PlayerInputBase
             anchorShootHeld,
             anchorRetractHeld,
             currentReelAmount
+        );
+
+        SetPickUpInputState(
+            pickUpHeld
+        );
+
+        SetPutInInputState(
+            putInHeld
         );
 
         UpdateAnchorRumble(gamepad);

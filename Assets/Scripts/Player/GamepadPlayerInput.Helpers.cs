@@ -2,10 +2,11 @@ using UnityEngine.InputSystem;
 
 public partial class GamepadPlayerInput
 {
-    private bool IsInteractButtonPressed(
-        Gamepad gamepad)
+    private bool IsButtonPressed(
+        Gamepad gamepad,
+        InteractButton button)
     {
-        switch (interactButton)
+        switch (button)
         {
             case InteractButton.South:
                 return gamepad

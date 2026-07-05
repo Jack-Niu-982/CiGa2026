@@ -257,6 +257,11 @@ public class AnchorRopeRuntime2D : MonoBehaviour
             return false;
         }
 
+        if (!settings.TryConsumeFuelForShot())
+        {
+            return false;
+        }
+
         launchDirection =
             result.Direction;
 

@@ -1,5 +1,7 @@
 using UnityEngine;
 using DG.Tweening;
+using System.Collections.Generic;
+using UnityEngine.Serialization;
 
 /// <summary>
 /// 船外漂浮物。负责漂移、被锚拉回船体，并在抵达后生成玩家可拾取物。
@@ -10,6 +12,7 @@ public class FloatingItem2D : MonoBehaviour
 {
     [Header("物品")]
     [SerializeField]
+    [FormerlySerializedAs("itemType")]
     private FloatingItemType floatingItemType =
         FloatingItemType.Unknown;
 
@@ -29,6 +32,12 @@ public class FloatingItem2D : MonoBehaviour
     [SerializeField]
     private float angularSpeed = 20f;
 
+    [Header("显示尺寸")]
+    [Tooltip("该 FloatingItem 独立的最终显示缩放。生成动画会从此尺寸的 Spawn Start Scale 倍数过渡到该值。")]
+    [Min(0.01f)]
+    [SerializeField]
+    private float displayScale = 1f;
+
     [Header("锚拉回")]
     [SerializeField]
     private bool canBeCaughtByAnchor = true;
@@ -41,19 +50,27 @@ public class FloatingItem2D : MonoBehaviour
     [SerializeField]
     private float arrivalDistance = 0.12f;
 
+    [Tooltip("在 Rooms 子物体的 Trigger 内生成拾取物时，与区域边缘保留的距离。")]
+    [Min(0f)]
+    [SerializeField]
+    private float roomSpawnPadding = 0.05f;
+
     private Rigidbody2D itemRigidbody;
     private Collider2D[] colliders;
     private SpriteRenderer[] spriteRenderers;
     private AnchorItemDropPoint2D activeDropPoint;
+    private AnchorLauncher2D activeLauncher;
     private Transform anchorTransform;
     private float lifeTimer;
     private float lifetime;
     private bool isBeingPulled;
     private bool hasResolved;
     private bool isBlinking;
+    private Tween spawnScaleTween;
     private Sequence blinkSequence;
 
     public FloatingItemType FloatingType => floatingItemType;
+    public float DisplayScale => displayScale;
     public bool CanBeCaughtByAnchor => canBeCaughtByAnchor && !isBeingPulled && !hasResolved;
 
     private void Reset()
@@ -93,7 +110,11 @@ public class FloatingItem2D : MonoBehaviour
 
     private void PlaySpawnAnimation(FloatingItemSettings settings)
     {
-        transform.localScale = Vector3.one * settings.spawnStartScale;
+        Vector3 targetScale =
+            Vector3.one * displayScale;
+
+        transform.localScale =
+            targetScale * settings.spawnStartScale;
 
         foreach (var renderer in spriteRenderers)
         {
@@ -105,7 +126,10 @@ public class FloatingItem2D : MonoBehaviour
             }
         }
 
-        transform.DOScale(Vector3.one, settings.spawnScaleDuration)
+        spawnScaleTween = transform.DOScale(
+                targetScale,
+                settings.spawnScaleDuration
+            )
             .SetEase(settings.spawnEase);
 
         DOTween.To(
@@ -225,6 +249,12 @@ public class FloatingItem2D : MonoBehaviour
 
     private void OnDestroy()
     {
+        if (spawnScaleTween != null &&
+            spawnScaleTween.IsActive())
+        {
+            spawnScaleTween.Kill();
+        }
+
         if (blinkSequence != null && blinkSequence.IsActive())
         {
             blinkSequence.Kill();
@@ -242,6 +272,9 @@ public class FloatingItem2D : MonoBehaviour
         }
 
         activeDropPoint = dropPoint;
+        activeLauncher =
+            dropPoint.GetComponentInParent
+                <AnchorLauncher2D>();
         anchorTransform = anchor;
         isBeingPulled = true;
 
@@ -310,17 +343,84 @@ public class FloatingItem2D : MonoBehaviour
 
         itemRigidbody.MovePosition(nextPosition);
 
-        // 检查是否到达下落点
-        float distanceToDropPoint =
-            Vector2.Distance(
-                nextPosition,
-                activeDropPoint.DropWorldPosition
-            );
-
-        if (distanceToDropPoint <= arrivalDistance * 3f)
+        if (HasAnchorReturnedToLauncher(
+                nextPosition
+            ))
         {
             SpawnPickupAndDestroy(activeDropPoint.DropWorldPosition);
         }
+    }
+
+    public void SetDisplayScale(float newDisplayScale)
+    {
+        displayScale =
+            Mathf.Max(0.01f, newDisplayScale);
+
+        Vector3 targetScale =
+            Vector3.one * displayScale;
+
+        if (!Application.isPlaying)
+        {
+            transform.localScale = targetScale;
+            return;
+        }
+
+        if (spawnScaleTween != null &&
+            spawnScaleTween.IsActive())
+        {
+            spawnScaleTween.Kill();
+        }
+
+        FloatingItemSettings settings =
+            SettingManager.FloatingItem;
+
+        if (settings == null)
+        {
+            transform.localScale = targetScale;
+            return;
+        }
+
+        transform.localScale =
+            targetScale * settings.spawnStartScale;
+
+        spawnScaleTween = transform.DOScale(
+                targetScale,
+                settings.spawnScaleDuration
+            )
+            .SetEase(settings.spawnEase);
+    }
+
+    private void OnValidate()
+    {
+        displayScale = Mathf.Max(0.01f, displayScale);
+
+        if (!Application.isPlaying)
+        {
+            transform.localScale =
+                Vector3.one * displayScale;
+        }
+    }
+
+    private bool HasAnchorReturnedToLauncher(
+        Vector2 itemPosition)
+    {
+        if (activeLauncher != null &&
+            anchorTransform != null)
+        {
+            float completionRadius =
+                activeLauncher.AnchorOffset +
+                arrivalDistance;
+
+            return Vector2.Distance(
+                       anchorTransform.position,
+                       activeLauncher.transform.position
+                   ) <= completionRadius;
+        }
+
+        return Vector2.Distance(
+                   itemPosition,
+                   activeDropPoint.DropWorldPosition
+               ) <= arrivalDistance * 3f;
     }
 
     private void SpawnPickupAndDestroy(
@@ -346,8 +446,15 @@ public class FloatingItem2D : MonoBehaviour
 
             case FloatingItemType.Fuel:
             case FloatingItemType.Shield:
+                SpawnPickupItem(
+                    GetRandomRoomSpawnPosition(
+                        worldPosition
+                    )
+                );
+                break;
+
             case FloatingItemType.Trash:
-                SpawnPickupItem(worldPosition);
+                // 垃圾被勾回后直接清除，不进入船舱生成 Pickup。
                 break;
         }
 
@@ -448,12 +555,171 @@ public class FloatingItem2D : MonoBehaviour
 
         if (pickupRigidbody != null)
         {
-            pickupRigidbody.bodyType = RigidbodyType2D.Dynamic;
+            pickupRigidbody.bodyType = RigidbodyType2D.Kinematic;
             pickupRigidbody.simulated = true;
-            pickupRigidbody.gravityScale = 1f;
+            pickupRigidbody.gravityScale = 0f;
             pickupRigidbody.velocity = Vector2.zero;
             pickupRigidbody.angularVelocity = 0f;
         }
+    }
+
+    private Vector2 GetRandomRoomSpawnPosition(
+        Vector2 fallbackPosition)
+    {
+        Transform roomsRoot =
+            FindRoomsRoot();
+
+        if (roomsRoot == null)
+        {
+            Debug.LogWarning(
+                "[FloatingItem2D] 没有找到 Rooms，拾取物将生成在锚点回收位置。",
+                this
+            );
+            return fallbackPosition;
+        }
+
+        List<Collider2D> roomTriggers =
+            new List<Collider2D>();
+
+        for (int i = 0; i < roomsRoot.childCount; i++)
+        {
+            Transform room =
+                roomsRoot.GetChild(i);
+
+            Collider2D[] colliders =
+                room.GetComponents<Collider2D>();
+
+            for (int colliderIndex = 0;
+                 colliderIndex < colliders.Length;
+                 colliderIndex++)
+            {
+                Collider2D collider =
+                    colliders[colliderIndex];
+
+                if (collider != null &&
+                    collider.enabled &&
+                    collider.isTrigger &&
+                    collider.gameObject.activeInHierarchy)
+                {
+                    roomTriggers.Add(collider);
+                }
+            }
+        }
+
+        if (roomTriggers.Count == 0)
+        {
+            Debug.LogWarning(
+                "[FloatingItem2D] Rooms 下没有可用的 Trigger，拾取物将生成在锚点回收位置。",
+                this
+            );
+            return fallbackPosition;
+        }
+
+        Collider2D selectedRoom =
+            roomTriggers[
+                Random.Range(0, roomTriggers.Count)
+            ];
+
+        return GetRandomPointInsideCollider(
+            selectedRoom,
+            fallbackPosition
+        );
+    }
+
+    private Transform FindRoomsRoot()
+    {
+        Transform searchRoot =
+            activeDropPoint != null
+                ? activeDropPoint.transform.root
+                : transform.root;
+
+        Transform[] transforms =
+            searchRoot.GetComponentsInChildren<Transform>(
+                true
+            );
+
+        for (int i = 0; i < transforms.Length; i++)
+        {
+            if (transforms[i].name == "Rooms")
+            {
+                return transforms[i];
+            }
+        }
+
+        return null;
+    }
+
+    private Vector2 GetRandomPointInsideCollider(
+        Collider2D roomTrigger,
+        Vector2 fallbackPosition)
+    {
+        BoxCollider2D box =
+            roomTrigger as BoxCollider2D;
+
+        if (box != null)
+        {
+            Vector3 lossyScale =
+                box.transform.lossyScale;
+
+            float insetX =
+                roomSpawnPadding /
+                Mathf.Max(
+                    Mathf.Abs(lossyScale.x),
+                    0.0001f
+                );
+
+            float insetY =
+                roomSpawnPadding /
+                Mathf.Max(
+                    Mathf.Abs(lossyScale.y),
+                    0.0001f
+                );
+
+            Vector2 halfSize =
+                box.size * 0.5f;
+
+            float rangeX =
+                Mathf.Max(0f, halfSize.x - insetX);
+
+            float rangeY =
+                Mathf.Max(0f, halfSize.y - insetY);
+
+            Vector2 localPoint =
+                box.offset +
+                new Vector2(
+                    Random.Range(-rangeX, rangeX),
+                    Random.Range(-rangeY, rangeY)
+                );
+
+            return box.transform.TransformPoint(
+                localPoint
+            );
+        }
+
+        Bounds bounds =
+            roomTrigger.bounds;
+
+        for (int attempt = 0;
+             attempt < 16;
+             attempt++)
+        {
+            Vector2 candidate =
+                new Vector2(
+                    Random.Range(bounds.min.x, bounds.max.x),
+                    Random.Range(bounds.min.y, bounds.max.y)
+                );
+
+            if (roomTrigger.OverlapPoint(candidate))
+            {
+                return candidate;
+            }
+        }
+
+        return roomTrigger.bounds.Contains(
+            fallbackPosition
+        )
+            ? fallbackPosition
+            : roomTrigger.bounds.center;
     }
 
     private Transform FindPickupParent()

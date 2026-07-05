@@ -4,7 +4,7 @@ using UnityEngine;
 
 /// <summary>
 /// 玩家身上的拾取与手持交互器。
-/// 读取当前玩家自己的 InteractPressed：空手时拾取最近物品，手持时再次按键放下。
+/// 读取当前玩家自己的 PickUpPressed：空手时拾取最近物品，手持时再次按键放下。
 /// </summary>
 [DisallowMultipleComponent]
 public class PlayerCarryInteractor2D : MonoBehaviour
@@ -18,7 +18,7 @@ public class PlayerCarryInteractor2D : MonoBehaviour
     [SerializeField]
     private PlayerInputBase fallbackInput;
 
-    [Tooltip("玩家正在操作锚点或其他设施时，拾取逻辑会暂停，避免同一个交互键抢输入。")]
+    [Tooltip("玩家正在操作锚点或其他设施时，拾取逻辑会暂停，避免拾取动作干扰设施操作。")]
     [SerializeField]
     private PlayerOperateInteractor2D operateInteractor;
 
@@ -35,6 +35,20 @@ public class PlayerCarryInteractor2D : MonoBehaviour
     [SerializeField]
     private SpriteRenderer pickupSpriteRenderer;
 
+    [SerializeField]
+    private PlayerPutInInteractor2D putInInteractor;
+
+    [Header("拾取检测")]
+    [Tooltip("拾取检测圆会以玩家 Transform 为圆心，并在玩家碰撞半径外额外增加这段距离。")]
+    [Min(0f)]
+    [SerializeField]
+    private float pickupDetectionPadding = 0.1f;
+
+    [Tooltip("找不到玩家实体碰撞体时使用的备用玩家半径。")]
+    [Min(0.01f)]
+    [SerializeField]
+    private float fallbackPlayerRadius = 0.13f;
+
     [Header("放下位置")]
     [SerializeField]
     private Vector2 dropLocalOffset =
@@ -45,9 +59,15 @@ public class PlayerCarryInteractor2D : MonoBehaviour
             new Dictionary<CarryableItem2D, int>();
 
     private CarryableItem2D heldItem;
+    private Collider2D playerBodyCollider;
 
     public CarryableItem2D HeldItem => heldItem;
     public bool HasHeldItem => heldItem != null;
+
+    public bool HasPickUpOption =>
+        heldItem == null &&
+        !IsBusyOperating() &&
+        GetClosestPickupItem() != null;
 
     public event Action<PlayerCarryInteractor2D, CarryableItem2D>
         HeldItemChanged;
@@ -106,6 +126,14 @@ public class PlayerCarryInteractor2D : MonoBehaviour
                 FindPickupSpriteRenderer();
         }
 
+        if (putInInteractor == null)
+        {
+            putInInteractor =
+                GetComponent<PlayerPutInInteractor2D>();
+        }
+
+        ResolvePlayerBodyCollider();
+
         RefreshPickupSprite();
     }
 
@@ -114,14 +142,30 @@ public class PlayerCarryInteractor2D : MonoBehaviour
         PlayerInputBase currentInput =
             GetCurrentInput();
 
+        bool isBusy =
+            IsBusyOperating();
+
         if (currentInput == null ||
-            IsBusyOperating() ||
-            !currentInput.InteractPressed)
+            isBusy ||
+            !currentInput.PickUpPressed)
         {
             return;
         }
 
-        if (!TryPickupClosestItem() &&
+        if (currentInput.PutInPressed &&
+            putInInteractor != null &&
+            putInInteractor.HasPutInOption)
+        {
+            return;
+        }
+
+        CarryableItem2D closestItem =
+            heldItem == null
+                ? GetClosestPickupItem()
+                : null;
+
+        if (!(closestItem != null &&
+              TryPickupItem(closestItem)) &&
             heldItem != null)
         {
             TryDropHeldItem();
@@ -133,6 +177,7 @@ public class PlayerCarryInteractor2D : MonoBehaviour
     {
         return
             item != null &&
+            heldItem == null &&
             heldItem != item &&
             !item.IsHeld;
     }
@@ -149,12 +194,6 @@ public class PlayerCarryInteractor2D : MonoBehaviour
         CarryableItem2D item)
     {
         if (!CanPickup(item))
-        {
-            return false;
-        }
-
-        if (heldItem != null &&
-            !TryDropHeldItem())
         {
             return false;
         }
@@ -264,18 +303,37 @@ public class PlayerCarryInteractor2D : MonoBehaviour
 
     private CarryableItem2D GetClosestPickupItem()
     {
-        RemoveInvalidNearbyItems();
-
         CarryableItem2D closestItem =
             null;
 
         float closestSqrDistance =
             float.MaxValue;
 
-        foreach (CarryableItem2D item in nearbyItems.Keys)
+        float detectionRadius =
+            GetPickupDetectionRadius();
+
+        Collider2D[] overlaps =
+            Physics2D.OverlapCircleAll(
+                transform.position,
+                detectionRadius
+            );
+
+        HashSet<CarryableItem2D> checkedItems =
+            new HashSet<CarryableItem2D>();
+
+        for (int i = 0; i < overlaps.Length; i++)
         {
+            Collider2D overlap = overlaps[i];
+
+            CarryableItem2D item =
+                overlap != null
+                    ? overlap.GetComponentInParent
+                        <CarryableItem2D>()
+                    : null;
+
             if (item == null ||
-                item.IsHeld)
+                item.IsHeld ||
+                !checkedItems.Add(item))
             {
                 continue;
             }
@@ -299,6 +357,47 @@ public class PlayerCarryInteractor2D : MonoBehaviour
         }
 
         return closestItem;
+    }
+
+    private float GetPickupDetectionRadius()
+    {
+        if (playerBodyCollider == null)
+        {
+            ResolvePlayerBodyCollider();
+        }
+
+        float playerRadius =
+            fallbackPlayerRadius;
+
+        if (playerBodyCollider != null)
+        {
+            Vector3 extents =
+                playerBodyCollider.bounds.extents;
+
+            playerRadius =
+                Mathf.Max(extents.x, extents.y);
+        }
+
+        return playerRadius +
+               pickupDetectionPadding;
+    }
+
+    private void ResolvePlayerBodyCollider()
+    {
+        Collider2D[] colliders =
+            GetComponents<Collider2D>();
+
+        for (int i = 0; i < colliders.Length; i++)
+        {
+            Collider2D collider = colliders[i];
+
+            if (collider != null &&
+                !collider.isTrigger)
+            {
+                playerBodyCollider = collider;
+                return;
+            }
+        }
     }
 
     private void RemoveInvalidNearbyItems()
@@ -394,6 +493,17 @@ public class PlayerCarryInteractor2D : MonoBehaviour
 
         nearbyItems.Clear();
         ClearPickupSprite();
+    }
+
+    private void OnDrawGizmosSelected()
+    {
+        Gizmos.color =
+            new Color(0.2f, 0.9f, 1f, 0.65f);
+
+        Gizmos.DrawWireSphere(
+            transform.position,
+            GetPickupDetectionRadius()
+        );
     }
 
     private SpriteRenderer FindPickupSpriteRenderer()

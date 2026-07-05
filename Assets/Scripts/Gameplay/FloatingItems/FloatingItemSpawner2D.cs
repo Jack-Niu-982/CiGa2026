@@ -13,6 +13,10 @@ public class FloatingItemSpawner2D : MonoBehaviour
 
         [Min(0f)]
         public float weight;
+
+        [Tooltip("该类型生成后的最终显示缩放。小于等于 0 时使用 Prefab 上的 Display Scale。")]
+        [Min(0.01f)]
+        public float displayScale;
     }
 
     [SerializeField]
@@ -95,8 +99,11 @@ public class FloatingItemSpawner2D : MonoBehaviour
         FloatingItemSpawnZone2D zone =
             PickZone();
 
+        SpawnEntry entry =
+            PickEntry();
+
         FloatingItem2D prefab =
-            PickPrefab();
+            entry.prefab;
 
         if (zone == null ||
             prefab == null)
@@ -123,6 +130,12 @@ public class FloatingItemSpawner2D : MonoBehaviour
 
                 item.SetDriftVelocity(
                     zone.DriftVelocity
+                );
+
+                item.SetDisplayScale(
+                    entry.displayScale > 0f
+                        ? entry.displayScale
+                        : prefab.DisplayScale
                 );
 
                 foundValidPosition = true;
@@ -382,12 +395,12 @@ public class FloatingItemSpawner2D : MonoBehaviour
         }
     }
 
-    private FloatingItem2D PickPrefab()
+    private SpawnEntry PickEntry()
     {
         if (entries == null ||
             entries.Length == 0)
         {
-            return null;
+            return default;
         }
 
         float totalWeight = 0f;
@@ -400,7 +413,7 @@ public class FloatingItemSpawner2D : MonoBehaviour
 
         if (totalWeight <= 0f)
         {
-            return entries[0].prefab;
+            return entries[0];
         }
 
         float roll =
@@ -413,11 +426,35 @@ public class FloatingItemSpawner2D : MonoBehaviour
 
             if (roll <= 0f)
             {
-                return entries[i].prefab;
+                return entries[i];
             }
         }
 
-        return entries[entries.Length - 1].prefab;
+        return entries[entries.Length - 1];
+    }
+
+    private void OnValidate()
+    {
+        if (entries == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < entries.Length; i++)
+        {
+            SpawnEntry entry = entries[i];
+            entry.weight = Mathf.Max(0f, entry.weight);
+
+            if (entry.displayScale <= 0f)
+            {
+                entry.displayScale =
+                    entry.prefab != null
+                        ? entry.prefab.DisplayScale
+                        : 1f;
+            }
+
+            entries[i] = entry;
+        }
     }
 
     private void OnDrawGizmosSelected()

@@ -28,7 +28,7 @@ public static class FloatingItemPrefabBuilder
         EnsureFolder(FloatingPrefabFolder);
         BuildItem(
             CarryableItemType.Fuel,
-            "FuelPickup",
+            "FuelPickUpInRoom",
             FuelSpritePath,
             FuelIdleFolder,
             "FuelIdle"
@@ -36,7 +36,7 @@ public static class FloatingItemPrefabBuilder
 
         BuildItem(
             CarryableItemType.Trash,
-            "TrashPickup",
+            "TrashPickUpInRoom",
             TrashSpritePath,
             null,
             null
@@ -44,7 +44,7 @@ public static class FloatingItemPrefabBuilder
 
         BuildItem(
             CarryableItemType.Shield,
-            "ShieldPickup",
+            "ShieldPickUpInRoom",
             ShieldSpritePath,
             ShieldIdleFolder,
             "ShieldIdle"
@@ -53,19 +53,19 @@ public static class FloatingItemPrefabBuilder
         BuildFloatingItem(
             FloatingItemType.Fuel,
             "FloatingFuel",
-            "FuelPickup"
+            "FuelPickUpInRoom"
         );
 
         BuildFloatingItem(
             FloatingItemType.Trash,
             "FloatingTrash",
-            "TrashPickup"
+            "TrashPickUpInRoom"
         );
 
         BuildFloatingItem(
             FloatingItemType.Shield,
             "FloatingShield",
-            "ShieldPickup"
+            "ShieldPickUpInRoom"
         );
 
         AssetDatabase.SaveAssets();

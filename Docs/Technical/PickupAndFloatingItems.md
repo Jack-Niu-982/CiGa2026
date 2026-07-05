@@ -28,9 +28,9 @@ Unity 菜单路径：
 
 这个菜单会生成或覆盖下面这些可编辑 Prefab：
 
-- `Assets/Prefabs/Gameplay/Pickups/FuelPickup.prefab`
-- `Assets/Prefabs/Gameplay/Pickups/TrashPickup.prefab`
-- `Assets/Prefabs/Gameplay/Pickups/ShieldPickup.prefab`
+- `Assets/Prefabs/Gameplay/Pickups/FuelPickUpInRoom.prefab`
+- `Assets/Prefabs/Gameplay/Pickups/TrashPickUpInRoom.prefab`
+- `Assets/Prefabs/Gameplay/Pickups/ShieldPickUpInRoom.prefab`
 
 菜单还会在 `Assets/Prefabs/Gameplay/Pickups/GeneratedSprites/` 下生成临时占位 Sprite。占位图只用于让 Prefab 在 Scene 里能被看见，后续应由美术资源替换。
 
@@ -67,7 +67,8 @@ Unity 菜单路径：
 - `Assets/Prefabs/Gameplay/Player.prefab` 已挂载 `PlayerCarryInteractor2D`。
 - 玩家 Prefab 下已添加 `CarryHoldPoint`，用于手动调整手持物品的位置。
 - `PlayerCarryInteractor2D` 会在玩家正在操作锚点或其他设施时暂停响应拾取键，避免和 `PlayerOperateInteractor2D` 抢同一个交互输入。
-- `FuelPickup`、`TrashPickup`、`ShieldPickup` 已生成，均包含 `CarryableItem2D`、`SpriteRenderer`、`BoxCollider2D` 和 `Rigidbody2D`。
+- `FuelPickUpInRoom`、`TrashPickUpInRoom`、`ShieldPickUpInRoom` 已生成，均包含 `CarryableItem2D`、`SpriteRenderer`、Trigger Collider2D 和 `Rigidbody2D`。
+- `FuelPickUpInRoom` 与 `ShieldPickUpInRoom` 使用原 Pickup Idle 动画，`TrashPickUpInRoom` 不使用动画。
 
 下面内容暂不进入这份 Prefab 生成方案：
 

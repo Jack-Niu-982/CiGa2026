@@ -7,11 +7,12 @@ using UnityEngine.InputSystem;
 /// 默认：
 /// WASD 移动。
 /// F 交互。
+/// E 拾取/放下（不在设施操作状态时）。
 ///
 /// 船锚：
 /// Q 发射。
 /// R 回收。
-/// E 按住拉回。
+/// E 按住拉回（设施操作状态中）。
 /// </summary>
 [DefaultExecutionOrder(-100)]
 public class KeyboardPlayerInput : PlayerInputBase
@@ -36,6 +37,14 @@ public class KeyboardPlayerInput : PlayerInputBase
     [SerializeField]
     private Key interactKey = Key.F;
 
+    [Tooltip("拾取和放下物品的独立按键。")]
+    [SerializeField]
+    private Key pickUpKey = Key.E;
+
+    [Tooltip("把手持物投入可接收装置的独立按键。")]
+    [SerializeField]
+    private Key putInKey = Key.G;
+
     [Header("船锚按键")]
 
     [Tooltip("按下后发射船锚。")]
@@ -55,6 +64,10 @@ public class KeyboardPlayerInput : PlayerInputBase
     [Tooltip("开启后，也可以使用方向键移动。")]
     [SerializeField]
     private bool allowArrowKeys = true;
+
+    public Key InteractKey => interactKey;
+    public Key PickUpKey => pickUpKey;
+    public Key PutInKey => putInKey;
 
     private void Update()
     {
@@ -98,6 +111,18 @@ public class KeyboardPlayerInput : PlayerInputBase
             IsKeyPressed(
                 keyboard,
                 interactKey
+            );
+
+        bool pickUpHeld =
+            IsKeyPressed(
+                keyboard,
+                pickUpKey
+            );
+
+        bool putInHeld =
+            IsKeyPressed(
+                keyboard,
+                putInKey
             );
 
         bool anchorShootHeld =
@@ -150,6 +175,14 @@ public class KeyboardPlayerInput : PlayerInputBase
             anchorShootHeld,
             anchorRetractHeld,
             anchorReelHeld
+        );
+
+        SetPickUpInputState(
+            pickUpHeld
+        );
+
+        SetPutInInputState(
+            putInHeld
         );
     }
 

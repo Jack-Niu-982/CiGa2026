@@ -342,6 +342,8 @@ MonoBehaviour:
   anchorOffset: 0.5
   anchorShootSpeed: 25
   anchorRetractSpeed: 18
+  fuelCostPerShot: 2
+  fuelSystem: {fileID: 0}
   wallHitPullDelay: 0.5
   wallPullImpulse: 6
   enableWallParticleFeedback: 1
