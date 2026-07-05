@@ -123,6 +123,25 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!1 &128048232 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 923847082969150937, guid: 96e11257d9592b84f831284b030a0b03, type: 3}
+  m_PrefabInstance: {fileID: 1434322837}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &128048237
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 128048232}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3312d7739989d2b4e91e6319e9a96d76, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_Padding: {x: 0, y: 0, z: 0, w: 0}
+  m_Softness: {x: 0, y: 0}
 --- !u!1 &177659429
 GameObject:
   m_ObjectHideFlags: 0
@@ -641,6 +660,11 @@ MonoBehaviour:
   zoomSpeed: 3
   minZoom: 12
   maxZoom: 80
+  mapDisplayPixelsPerSample: 6
+  minMapDisplayPixelsPerSample: 2
+  maxMapDisplayPixelsPerSample: 16
+  mapPanSpeed: 760
+  mapZoomStep: 0.01
 --- !u!4 &1072002896
 Transform:
   m_ObjectHideFlags: 0
@@ -894,6 +918,34 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 4205172549328135104, guid: 96e11257d9592b84f831284b030a0b03, type: 3}
+      propertyPath: m_PreferredHeight
+      value: 34
+      objectReference: {fileID: 0}
+    - target: {fileID: 5753021664246849829, guid: 96e11257d9592b84f831284b030a0b03, type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 5753021664246849829, guid: 96e11257d9592b84f831284b030a0b03, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 5753021664246849829, guid: 96e11257d9592b84f831284b030a0b03, type: 3}
+      propertyPath: m_AnchorMin.x
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 5753021664246849829, guid: 96e11257d9592b84f831284b030a0b03, type: 3}
+      propertyPath: m_AnchorMin.y
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 5753021664246849829, guid: 96e11257d9592b84f831284b030a0b03, type: 3}
+      propertyPath: m_SizeDelta.x
+      value: 1536
+      objectReference: {fileID: 0}
+    - target: {fileID: 5753021664246849829, guid: 96e11257d9592b84f831284b030a0b03, type: 3}
+      propertyPath: m_SizeDelta.y
+      value: 768
+      objectReference: {fileID: 0}
     - target: {fileID: 8350549825798095317, guid: 96e11257d9592b84f831284b030a0b03, type: 3}
       propertyPath: m_Name
       value: LevelEditorPanel
@@ -902,10 +954,17 @@ PrefabInstance:
       propertyPath: m_IsActive
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 8366454883872098047, guid: 96e11257d9592b84f831284b030a0b03, type: 3}
+      propertyPath: m_PreferredHeight
+      value: 34
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 923847082969150937, guid: 96e11257d9592b84f831284b030a0b03, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 128048237}
   m_SourcePrefab: {fileID: 100100000, guid: 96e11257d9592b84f831284b030a0b03, type: 3}
 --- !u!114 &1434322838 stripped
 MonoBehaviour:

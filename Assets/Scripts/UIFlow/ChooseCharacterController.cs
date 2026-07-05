@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.IO;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -7,9 +8,6 @@ using UnityEngine.SceneManagement;
 [DisallowMultipleComponent]
 public sealed class ChooseCharacterController : MonoBehaviour
 {
-    [Header("Scene Flow")]
-    [SerializeField] private string gameplaySceneName = "Jaeger";
-
     [Header("View")]
     [SerializeField] private ChooseCharacterCardView[] characterCards =
         new ChooseCharacterCardView[RoomInputManager.MaxPlayers];
@@ -291,6 +289,19 @@ public sealed class ChooseCharacterController : MonoBehaviour
 
     private void EnterGameplay()
     {
+        if (!SelectedLevelStore.HasSelectedPath &&
+            !SelectedLevelStore.HasTemporaryLevel)
+        {
+            string defaultPath = Path.Combine(
+                LevelFileService.BuiltInLevelFolder,
+                "default_level" + LevelFileService.JsonExtension);
+
+            if (File.Exists(defaultPath))
+            {
+                SelectedLevelStore.SetSelectedPath(defaultPath);
+            }
+        }
+
         List<GameplayPlayerAssignment> assignments =
             new List<GameplayPlayerAssignment>(players.Count);
 
@@ -312,7 +323,7 @@ public sealed class ChooseCharacterController : MonoBehaviour
         }
 
         GameplaySessionStore.SetAssignments(assignments);
-        SceneManager.LoadScene(gameplaySceneName);
+        SceneManager.LoadScene(SettingManager.Scene.gameplay);
     }
 
     private void RefreshView()

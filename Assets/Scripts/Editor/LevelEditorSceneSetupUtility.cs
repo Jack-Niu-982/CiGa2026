@@ -111,6 +111,12 @@ public static class LevelEditorSceneSetupUtility
 
         CreateText(sideBar.transform, "Title", "LEVEL EDITOR", 30);
 
+        TMP_InputField levelNameInput =
+            CreateInput(sideBar.transform, "LevelNameInput", "Level name");
+
+        TMP_Text selectedLevelLabel =
+            CreateText(sideBar.transform, "SelectedLevelLabel", "No saved maps", 16);
+
         Button digButton =
             CreateButton(sideBar.transform, "DigButton", "Dig");
         Button fillButton =
@@ -135,7 +141,17 @@ public static class LevelEditorSceneSetupUtility
         Button saveButton =
             CreateButton(sideBar.transform, "SaveButton", "Save");
         Button loadButton =
-            CreateButton(sideBar.transform, "LoadButton", "Load Latest");
+            CreateButton(sideBar.transform, "LoadButton", "Load Selected");
+        Button previousLevelButton =
+            CreateButton(sideBar.transform, "PreviousLevelButton", "Prev Map");
+        Button nextLevelButton =
+            CreateButton(sideBar.transform, "NextLevelButton", "Next Map");
+        Button refreshLevelsButton =
+            CreateButton(sideBar.transform, "RefreshLevelsButton", "Refresh Maps");
+        Button deleteLevelButton =
+            CreateButton(sideBar.transform, "DeleteLevelButton", "Delete Map");
+        Button setDefaultButton =
+            CreateButton(sideBar.transform, "SetDefaultButton", "Set Default");
         Button playtestButton =
             CreateButton(sideBar.transform, "PlaytestButton", "Playtest");
         Button backButton =
@@ -186,9 +202,16 @@ public static class LevelEditorSceneSetupUtility
         serializedView.FindProperty("fillButton").objectReferenceValue = fillButton;
         serializedView.FindProperty("startButton").objectReferenceValue = startButton;
         serializedView.FindProperty("finishButton").objectReferenceValue = finishButton;
+        serializedView.FindProperty("levelNameInput").objectReferenceValue = levelNameInput;
+        serializedView.FindProperty("selectedLevelLabel").objectReferenceValue = selectedLevelLabel;
         serializedView.FindProperty("newButton").objectReferenceValue = newButton;
         serializedView.FindProperty("saveButton").objectReferenceValue = saveButton;
         serializedView.FindProperty("loadButton").objectReferenceValue = loadButton;
+        serializedView.FindProperty("previousLevelButton").objectReferenceValue = previousLevelButton;
+        serializedView.FindProperty("nextLevelButton").objectReferenceValue = nextLevelButton;
+        serializedView.FindProperty("refreshLevelsButton").objectReferenceValue = refreshLevelsButton;
+        serializedView.FindProperty("deleteLevelButton").objectReferenceValue = deleteLevelButton;
+        serializedView.FindProperty("setDefaultButton").objectReferenceValue = setDefaultButton;
         serializedView.FindProperty("playtestButton").objectReferenceValue = playtestButton;
         serializedView.FindProperty("backButton").objectReferenceValue = backButton;
         serializedView.FindProperty("radiusSlider").objectReferenceValue = radiusSlider;
@@ -592,6 +615,62 @@ public static class LevelEditorSceneSetupUtility
         }
 
         return button;
+    }
+
+    private static TMP_InputField CreateInput(
+        Transform parent,
+        string name,
+        string placeholderText)
+    {
+        GameObject inputObject =
+            CreateUIObject(name, parent);
+
+        Image image =
+            inputObject.AddComponent<Image>();
+
+        image.color = new Color(0.10f, 0.12f, 0.15f, 1f);
+
+        TMP_InputField input =
+            inputObject.AddComponent<TMP_InputField>();
+
+        LayoutElement layout =
+            inputObject.AddComponent<LayoutElement>();
+
+        layout.preferredWidth = 280f;
+        layout.preferredHeight = 42f;
+
+        TMP_Text text =
+            CreateText(inputObject.transform, "Text", string.Empty, 18);
+
+        text.alignment = TextAlignmentOptions.MidlineLeft;
+        text.margin = new Vector4(10f, 0f, 10f, 0f);
+        StretchToParent(text.rectTransform);
+
+        TMP_Text placeholder =
+            CreateText(inputObject.transform, "Placeholder", placeholderText, 18);
+
+        placeholder.alignment = TextAlignmentOptions.MidlineLeft;
+        placeholder.color = new Color(1f, 1f, 1f, 0.45f);
+        placeholder.margin = new Vector4(10f, 0f, 10f, 0f);
+        StretchToParent(placeholder.rectTransform);
+
+        Object.DestroyImmediate(text.GetComponent<LayoutElement>());
+        Object.DestroyImmediate(placeholder.GetComponent<LayoutElement>());
+
+        input.textComponent = text;
+        input.placeholder = placeholder;
+        input.targetGraphic = image;
+
+        return input;
+    }
+
+    private static void StretchToParent(RectTransform rect)
+    {
+        rect.anchorMin = Vector2.zero;
+        rect.anchorMax = Vector2.one;
+        rect.offsetMin = Vector2.zero;
+        rect.offsetMax = Vector2.zero;
+        rect.anchoredPosition = Vector2.zero;
     }
 
     private static Slider CreateSlider(

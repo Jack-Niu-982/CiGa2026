@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -8,9 +9,6 @@ using UnityEngine.UI;
 [DisallowMultipleComponent]
 public sealed class LevelEditorController : MonoBehaviour
 {
-    [Header("Flow")]
-    [SerializeField] private string playtestSceneName = "Jaeger";
-
     [Header("View")]
     [SerializeField] private LevelEditorPanelView panelView;
     [SerializeField] private Camera editorCamera;
@@ -44,6 +42,8 @@ public sealed class LevelEditorController : MonoBehaviour
     private string lastSavedPath;
     private Texture2D mapTexture;
     private Vector2 mapPanOffset;
+    private readonly List<string> levelPaths = new List<string>();
+    private int selectedLevelIndex = -1;
 
     public event Action BackRequested;
 
@@ -56,6 +56,12 @@ public sealed class LevelEditorController : MonoBehaviour
     private void OnEnable()
     {
         SubscribeView();
+
+        if (panelView != null && currentLevel != null)
+        {
+            panelView.SetLevelName(currentLevel.displayName);
+            RefreshLevelList(lastSavedPath);
+        }
     }
 
     private void OnDisable()
@@ -77,6 +83,11 @@ public sealed class LevelEditorController : MonoBehaviour
         }
 
         gameObject.SetActive(visible);
+
+        if (visible && EventSystem.current != null)
+        {
+            EventSystem.current.SetSelectedGameObject(null);
+        }
     }
 
     public void CreateNewLevel()
@@ -93,6 +104,8 @@ public sealed class LevelEditorController : MonoBehaviour
         brush.Mode = LevelBrushMode.Dig;
         lastSavedPath = string.Empty;
         mapPanOffset = Vector2.zero;
+        panelView?.SetLevelName(currentLevel.displayName);
+        RefreshLevelList();
         RefreshPreview();
         RefreshView("New solid map created. Dig a route, then place start and finish.");
     }
@@ -105,6 +118,8 @@ public sealed class LevelEditorController : MonoBehaviour
             return;
         }
 
+        ApplyLevelNameFromView();
+
         if (!LevelFileService.SaveUserLevel(
                 currentLevel,
                 currentLevel.id,
@@ -116,25 +131,129 @@ public sealed class LevelEditorController : MonoBehaviour
 
         lastSavedPath = savedPath;
         SelectedLevelStore.SetSelectedPath(savedPath);
+        RefreshLevelList(savedPath);
         SetStatus($"Saved: {savedPath}");
     }
 
     public void LoadMostRecentLevel()
     {
-        List<string> paths =
-            LevelFileService.GetAllLevelPaths();
+        if (levelPaths.Count == 0)
+        {
+            RefreshLevelList();
+        }
 
-        if (paths.Count == 0)
+        if (levelPaths.Count == 0)
         {
             currentLevel = LevelFileService.LoadOrCreateDefault();
             lastSavedPath = string.Empty;
             mapPanOffset = Vector2.zero;
+            panelView?.SetLevelName(currentLevel.displayName);
             RefreshPreview();
             RefreshView("No saved maps found. Loaded generated default map.");
             return;
         }
 
-        string path = paths[paths.Count - 1];
+        selectedLevelIndex =
+            Mathf.Clamp(selectedLevelIndex, 0, levelPaths.Count - 1);
+
+        LoadLevelAtSelectedIndex();
+    }
+
+    public void DeleteSelectedLevel()
+    {
+        if (selectedLevelIndex < 0 || selectedLevelIndex >= levelPaths.Count)
+        {
+            SetStatus("No map selected.");
+            return;
+        }
+
+        string path = levelPaths[selectedLevelIndex];
+
+        if (!LevelFileService.TryDeleteUserLevel(path))
+        {
+            SetStatus("Only user-saved maps can be deleted.");
+            return;
+        }
+
+        string deletedPath = path;
+        RefreshLevelList();
+        SetStatus($"Deleted: {deletedPath}");
+    }
+
+    public void SetCurrentLevelAsDefault()
+    {
+        if (currentLevel == null)
+        {
+            SetStatus("No map to set as default.");
+            return;
+        }
+
+        LevelTerrainData defaultCopy =
+            JsonUtility.FromJson<LevelTerrainData>(
+                JsonUtility.ToJson(currentLevel)
+            );
+
+        if (!LevelFileService.SaveBuiltInDefaultLevel(defaultCopy, out string savedPath))
+        {
+            SetStatus("Set default failed.");
+            return;
+        }
+
+        RefreshLevelList(savedPath);
+        SetStatus($"Default map updated: {savedPath}");
+    }
+
+    public void SelectPreviousLevel()
+    {
+        if (levelPaths.Count == 0)
+        {
+            RefreshLevelList();
+            return;
+        }
+
+        selectedLevelIndex =
+            (selectedLevelIndex - 1 + levelPaths.Count) % levelPaths.Count;
+
+        RenderSelectedLevel();
+    }
+
+    public void SelectNextLevel()
+    {
+        if (levelPaths.Count == 0)
+        {
+            RefreshLevelList();
+            return;
+        }
+
+        selectedLevelIndex =
+            (selectedLevelIndex + 1) % levelPaths.Count;
+
+        RenderSelectedLevel();
+    }
+
+    public void RefreshLevelList()
+    {
+        RefreshLevelList(lastSavedPath);
+    }
+
+    private void RefreshLevelList(string preferredPath)
+    {
+        levelPaths.Clear();
+        levelPaths.AddRange(LevelFileService.GetAllLevelPaths());
+
+        selectedLevelIndex = levelPaths.IndexOf(preferredPath);
+
+        if (selectedLevelIndex < 0 && levelPaths.Count > 0)
+        {
+            selectedLevelIndex = 0;
+        }
+
+        RenderSelectedLevel();
+    }
+
+    private void LoadLevelAtSelectedIndex()
+    {
+        string path = levelPaths[selectedLevelIndex];
 
         if (!LevelFileService.TryLoadLevel(path, out LevelTerrainData loaded))
         {
@@ -146,7 +265,9 @@ public sealed class LevelEditorController : MonoBehaviour
         lastSavedPath = path;
         mapPanOffset = Vector2.zero;
         SelectedLevelStore.SetSelectedPath(path);
+        panelView?.SetLevelName(currentLevel.displayName);
         RefreshPreview();
+        RenderSelectedLevel();
         RefreshView($"Loaded: {path}");
     }
 
@@ -176,7 +297,7 @@ public sealed class LevelEditorController : MonoBehaviour
         }
 
         SelectedLevelStore.SetTemporaryLevel(currentLevel);
-        SceneManager.LoadScene(playtestSceneName);
+        SceneManager.LoadScene(SettingManager.Scene.gameplay);
     }
 
     private void EnsureReferences()
@@ -223,10 +344,16 @@ public sealed class LevelEditorController : MonoBehaviour
         panelView.NewClicked += CreateNewLevel;
         panelView.SaveClicked += SaveCurrentLevel;
         panelView.LoadClicked += LoadMostRecentLevel;
+        panelView.PreviousLevelClicked += SelectPreviousLevel;
+        panelView.NextLevelClicked += SelectNextLevel;
+        panelView.RefreshLevelsClicked += RefreshLevelList;
+        panelView.DeleteLevelClicked += DeleteSelectedLevel;
+        panelView.SetDefaultClicked += SetCurrentLevelAsDefault;
         panelView.PlaytestClicked += Playtest;
         panelView.BackClicked += HideEditor;
         panelView.RadiusChanged += SetBrushRadius;
         panelView.HardnessChanged += SetBrushHardness;
+        panelView.LevelNameChanged += SetCurrentLevelName;
     }
 
     private void UnsubscribeView()
@@ -243,17 +370,22 @@ public sealed class LevelEditorController : MonoBehaviour
         panelView.NewClicked -= CreateNewLevel;
         panelView.SaveClicked -= SaveCurrentLevel;
         panelView.LoadClicked -= LoadMostRecentLevel;
+        panelView.PreviousLevelClicked -= SelectPreviousLevel;
+        panelView.NextLevelClicked -= SelectNextLevel;
+        panelView.RefreshLevelsClicked -= RefreshLevelList;
+        panelView.DeleteLevelClicked -= DeleteSelectedLevel;
+        panelView.SetDefaultClicked -= SetCurrentLevelAsDefault;
         panelView.PlaytestClicked -= Playtest;
         panelView.BackClicked -= HideEditor;
         panelView.RadiusChanged -= SetBrushRadius;
         panelView.HardnessChanged -= SetBrushHardness;
+        panelView.LevelNameChanged -= SetCurrentLevelName;
     }
 
     private void HandlePaintInput()
     {
         if (currentLevel == null ||
-            Mouse.current == null ||
-            editorCamera == null)
+            Mouse.current == null)
         {
             return;
         }
@@ -291,11 +423,6 @@ public sealed class LevelEditorController : MonoBehaviour
 
     private void HandleCameraInput()
     {
-        if (editorCamera == null)
-        {
-            return;
-        }
-
         Vector2 move = Vector2.zero;
 
         if (Keyboard.current != null)
@@ -333,10 +460,7 @@ public sealed class LevelEditorController : MonoBehaviour
             }
             else
             {
-                editorCamera.transform.position +=
-                    (Vector3)(move.normalized *
-                              cameraPanSpeed *
-                              Time.unscaledDeltaTime);
+                PanEditorCamera(move.normalized);
             }
         }
 
@@ -360,16 +484,39 @@ public sealed class LevelEditorController : MonoBehaviour
                 }
                 else
                 {
-                    editorCamera.orthographicSize =
-                        Mathf.Clamp(
-                            editorCamera.orthographicSize -
-                            scroll * zoomSpeed * Time.unscaledDeltaTime,
-                            minZoom,
-                            maxZoom
-                        );
+                    ZoomEditorCamera(scroll);
                 }
             }
         }
+    }
+
+    private void PanEditorCamera(Vector2 direction)
+    {
+        if (editorCamera == null)
+        {
+            return;
+        }
+
+        editorCamera.transform.position +=
+            (Vector3)(direction *
+                      cameraPanSpeed *
+                      Time.unscaledDeltaTime);
+    }
+
+    private void ZoomEditorCamera(float scroll)
+    {
+        if (editorCamera == null)
+        {
+            return;
+        }
+
+        editorCamera.orthographicSize =
+            Mathf.Clamp(
+                editorCamera.orthographicSize -
+                scroll * zoomSpeed * Time.unscaledDeltaTime,
+                minZoom,
+                maxZoom
+            );
     }
 
     private bool CanControlMapView()
@@ -396,7 +543,7 @@ public sealed class LevelEditorController : MonoBehaviour
         RefreshMapTexture();
 
         LevelTerrainMeshData meshData =
-            LevelTerrainMesher.Build(currentLevel, solidThreshold);
+            LevelTerrainMarchingSquares.Build(currentLevel, solidThreshold);
 
         if (terrainRenderer != null)
         {
@@ -418,7 +565,52 @@ public sealed class LevelEditorController : MonoBehaviour
 
         panelView.RenderTool(brush.Mode);
         panelView.RenderBrush(brush.Radius, brush.Hardness);
+        RenderSelectedLevel();
         panelView.SetStatus(status);
+    }
+
+    private void RenderSelectedLevel()
+    {
+        if (panelView == null)
+        {
+            return;
+        }
+
+        if (levelPaths.Count == 0)
+        {
+            panelView.SetSelectedLevelLabel("No saved maps");
+            return;
+        }
+
+        string label =
+            $"{selectedLevelIndex + 1}/{levelPaths.Count} " +
+            LevelFileService.GetLevelListLabel(levelPaths[selectedLevelIndex]);
+
+        panelView.SetSelectedLevelLabel(label);
+    }
+
+    private void ApplyLevelNameFromView()
+    {
+        if (panelView != null)
+        {
+            SetCurrentLevelName(panelView.LevelNameValue);
+        }
+    }
+
+    private void SetCurrentLevelName(string value)
+    {
+        if (currentLevel == null)
+        {
+            return;
+        }
+
+        string displayName =
+            string.IsNullOrWhiteSpace(value)
+                ? "Untitled Level"
+                : value.Trim();
+
+        currentLevel.displayName = displayName;
+        currentLevel.id = LevelFileService.SanitizeFileName(displayName);
     }
 
     private void SetStatus(string status)

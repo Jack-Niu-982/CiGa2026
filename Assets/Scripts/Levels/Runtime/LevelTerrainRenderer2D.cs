@@ -34,21 +34,42 @@ public sealed class LevelTerrainRenderer2D : MonoBehaviour
             return;
         }
 
+        TerrainSettings settings = SettingManager.Terrain;
+
         if (runtimeMaterial == null)
         {
-            Shader shader = Shader.Find("Sprites/Default");
+            string shaderName = (settings != null &&
+                !string.IsNullOrWhiteSpace(settings.shaderName))
+                ? settings.shaderName
+                : "Sprites/Default";
+
+            Shader shader = Shader.Find(shaderName);
 
             if (shader == null)
             {
-                shader = Shader.Find("Universal Render Pipeline/2D/Sprite-Unlit-Default");
+                shader = Shader.Find(
+                    "Universal Render Pipeline/2D/Sprite-Unlit-Default");
             }
 
             runtimeMaterial = new Material(shader)
             {
                 name = "Generated Terrain Material"
             };
+        }
 
-            runtimeMaterial.color = fallbackColor;
+        if (settings != null && settings.terrainTexture != null)
+        {
+            runtimeMaterial.mainTexture = settings.terrainTexture;
+            runtimeMaterial.mainTextureScale = new Vector2(1f, 1f);
+            runtimeMaterial.color = settings.tint;
+        }
+        else
+        {
+            runtimeMaterial.mainTexture = null;
+            Color color = (settings != null)
+                ? settings.fallbackColor
+                : fallbackColor;
+            runtimeMaterial.color = color;
         }
 
         meshRenderer.sharedMaterial = runtimeMaterial;

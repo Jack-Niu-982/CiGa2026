@@ -65,7 +65,7 @@ public sealed class LevelRuntimeBootstrap : MonoBehaviour
         EnsureGeneratedHierarchy();
 
         LevelTerrainMeshData meshData =
-            LevelTerrainMesher.Build(level, solidThreshold);
+            LevelTerrainMarchingSquares.Build(level, solidThreshold);
 
         if (terrainRenderer != null)
         {

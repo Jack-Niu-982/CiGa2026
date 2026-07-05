@@ -2,6 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 public static class LevelFileService
 {
@@ -111,6 +114,32 @@ public static class LevelFileService
         return SaveLevel(data, savedPath);
     }
 
+    public static bool SaveBuiltInDefaultLevel(
+        LevelTerrainData data,
+        out string savedPath)
+    {
+        savedPath =
+            Path.Combine(
+                BuiltInLevelFolder,
+                "default_level" + JsonExtension
+            );
+
+        data.id = "default_level";
+        data.displayName = "Default Level";
+
+        bool saved =
+            SaveLevel(data, savedPath);
+
+#if UNITY_EDITOR
+        if (saved)
+        {
+            AssetDatabase.ImportAsset("Assets/StreamingAssets/Levels/default_level.json");
+        }
+#endif
+
+        return saved;
+    }
+
     public static bool SaveLevel(
         LevelTerrainData data,
         string path)
@@ -145,6 +174,42 @@ public static class LevelFileService
         AddLevelPaths(BuiltInLevelFolder, paths);
         AddLevelPaths(UserLevelFolder, paths);
         return paths;
+    }
+
+    public static bool TryDeleteUserLevel(string path)
+    {
+        if (!IsUserLevelPath(path) ||
+            !File.Exists(path))
+        {
+            return false;
+        }
+
+        File.Delete(path);
+        return true;
+    }
+
+    public static bool IsUserLevelPath(string path)
+    {
+        string fullPath =
+            Path.GetFullPath(path ?? string.Empty)
+                .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+
+        string userFolder =
+            Path.GetFullPath(UserLevelFolder)
+                .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+
+        return fullPath.StartsWith(userFolder, StringComparison.OrdinalIgnoreCase);
+    }
+
+    public static string GetLevelListLabel(string path)
+    {
+        string name =
+            Path.GetFileNameWithoutExtension(path);
+
+        string source =
+            IsUserLevelPath(path) ? "User" : "Built-in";
+
+        return $"{name} [{source}]";
     }
 
     public static string SanitizeFileName(string fileName)

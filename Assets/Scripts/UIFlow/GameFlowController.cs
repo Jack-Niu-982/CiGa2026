@@ -1,3 +1,4 @@
+using System.IO;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -6,7 +7,6 @@ public class GameFlowController : MonoBehaviour
 {
     [Header("Flow")]
     [SerializeField] private GameFlowState initialState = GameFlowState.MainMenu;
-    [SerializeField] private string gameplaySceneName = "Jaeger";
 
     [Header("Runtime State")]
     [SerializeField] private RoomInputManager roomInputManager;
@@ -89,6 +89,19 @@ public class GameFlowController : MonoBehaviour
             return;
         }
 
+        if (!SelectedLevelStore.HasSelectedPath &&
+            !SelectedLevelStore.HasTemporaryLevel)
+        {
+            string defaultPath = Path.Combine(
+                LevelFileService.BuiltInLevelFolder,
+                "default_level" + LevelFileService.JsonExtension);
+
+            if (File.Exists(defaultPath))
+            {
+                SelectedLevelStore.SetSelectedPath(defaultPath);
+            }
+        }
+
         if (localPlayerSession != null)
         {
             localPlayerSession.CaptureFrom(roomInputManager);
@@ -96,7 +109,7 @@ public class GameFlowController : MonoBehaviour
 
         GameplaySessionStore.Capture(roomInputManager);
 
-        SceneManager.LoadScene(gameplaySceneName);
+        SceneManager.LoadScene(SettingManager.Scene.gameplay);
     }
 
     public void QuitGame()
